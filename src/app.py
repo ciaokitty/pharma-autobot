@@ -25,6 +25,8 @@ if 'has_processed' not in st.session_state:
     st.session_state.has_processed = False
 if 'structured_data' not in st.session_state:
     st.session_state.structured_data = None
+if 'edited_data' not in st.session_state:
+    st.session_state.edited_data = None
 
 st.title("Pharmacist's Assistant")
 logger.info("Application started")
@@ -76,11 +78,12 @@ if uploaded_file:
             # Convert to DataFrame for display
             df = pd.DataFrame(table_data)
             
-            # Display the table with styling
-            st.dataframe(
+            # Display the table with editing capabilities
+            edited_df = st.data_editor(
                 df,
+                key="medication_editor",
                 use_container_width=True,
-                hide_index=True,
+                num_rows="dynamic",
                 column_config={
                     "Medication Name": st.column_config.TextColumn("Medication Name", help="Name of the prescribed medication"),
                     "Dosage": st.column_config.TextColumn("Dosage", help="Prescribed dosage"),
@@ -90,6 +93,25 @@ if uploaded_file:
                     "When to Take": st.column_config.TextColumn("When to Take", help="Timing for taking the medication")
                 }
             )
+            
+            # Store the edited dataframe in session state
+            st.session_state.edited_data = edited_df
+            
+            # Show information about edits
+            with st.expander("View Edit Information"):
+                st.write("### Changes Made to the Table")
+                if "medication_editor" in st.session_state:
+                    edit_info = st.session_state["medication_editor"]
+                    st.write("#### Edited Rows")
+                    st.json(edit_info.get("edited_rows", {}))
+                    
+                    st.write("#### Added Rows")
+                    st.json(edit_info.get("added_rows", []))
+                    
+                    st.write("#### Deleted Rows")
+                    st.json(edit_info.get("deleted_rows", []))
+                else:
+                    st.write("No edits made yet.")
             
             # Add an expandable section with the raw data for reference
             with st.expander("View Raw Data"):
