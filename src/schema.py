@@ -37,7 +37,7 @@ class MedicationResponse(BaseModel):
     """
     medications: list[Medication] = Field(..., description="List of medication information")
 
-class SpellCheckResponse(BaseModel):
+class SpellCheck(BaseModel):
     """
     Response model for spell-checked medication names.
     
@@ -57,3 +57,12 @@ class SpellCheckResponse(BaseModel):
     is_correct: bool = Field(..., description="Whether the original spelling was correct")
     is_generic: bool = Field(..., description="Whether the name is a generic name")
     notes: str = Field(..., description="Additional comments if needed") 
+
+class SpellCheckResponse(BaseModel):
+    """
+    Response model containing a list of corrected medications.
+    
+    Attributes:
+        drugs: List of corrected medication information
+    """
+    drugs: list[SpellCheck] = Field(..., description="List of corrected spell check medication names.")

@@ -4,130 +4,108 @@ spell_system_prompt=r"You will receive medicine names that may contain significa
 
 
 ## Other Brand Names
-spell_list_brand_name_prompt=r"List all known brand names under which the drug is marketed in India. Use grounding with Google search for each response to ensure accuracy."
+spell_list_brand_name_prompt=r"List all known brand names under which the following drugs are marketed in India. Use grounding with Google search for each drug name to ensure accuracy."
 
 ## Structured Output
-spell_structured_output_prompt=r"""Provide all the above responses in the following JSON format:
+spell_structured_output_prompt = r"""Provide all the above responses in the following JSON format for multiple drug inputs: 
 ```json
 {
-  "input_name": "<original input>",
-  "corrected_name": "<corrected name or original if correct>",
-  "generic_name": "<generic drug name or 'N/A'>",
-  "brand_names": ["<brand name 1>", "<brand name 2>", "..."],
-  "is_correct": <true/false>,
-  "is_generic": <true/false>,
-  "notes": "<additional comments if needed>"
+  "drugs": [
+    {
+      "input_name": "<original input>",
+      "corrected_name": "<corrected name or original if correct>",
+      "generic_name": "<generic drug name or 'N/A'>",
+      "brand_names": ["<brand name 1>", "<brand name 2>", "..."],
+      "is_correct": <true/false>,
+      "is_generic": <true/false>,
+      "notes": "<additional comments if needed>"
+    },
+    ...
+  ]
 }
-```
 
 ---
 
 ### **Examples**
 
-#### **Example 1: Correct Spelling (Generic Name)**
-**Input:** `"Paracetamol"`
-**Output:**
+#### **Example 1: Multiple Correct and Misspelled Entries**
+
+**Input:** `["Paracetomol", "Advilv", "Xytrnex"]` **Output:**
+
 ```json
 {
-  "input_name": "Paracetamol",
-  "corrected_name": "Paracetamol",
-  "generic_name": "Paracetamol",
-  "brand_names": ["Tylenol", "Panadol"],
-  "is_correct": true,
-  "is_generic": true,
-  "notes": "No spelling errors detected."
+  "drugs": [
+    {
+      "input_name": "Paracetomol",
+      "corrected_name": "Paracetamol",
+      "generic_name": "Paracetamol",
+      "brand_names": ["Tylenol", "Panadol"],
+      "is_correct": false,
+      "is_generic": true,
+      "notes": "Common misspelling corrected."
+    },
+    {
+      "input_name": "Advilv",
+      "corrected_name": "Advil",
+      "generic_name": "Ibuprofen",
+      "brand_names": ["Advil", "Motrin", "Nurofen"],
+      "is_correct": false,
+      "is_generic": false,
+      "notes": "Likely intended to be 'Advil'."
+    },
+    {
+      "input_name": "Xytrnex",
+      "corrected_name": "Unknown",
+      "generic_name": "N/A",
+      "brand_names": [],
+      "is_correct": false,
+      "is_generic": false,
+      "notes": "Unable to confidently determine the intended medicine."
+    }
+  ]
 }
 ```
 
-#### **Example 2: Misspelled Generic Name**
-**Input:** `"Paracetomol"`
-**Output:**
+#### **Example 2: Fully Correct Inputs**
+
+**Input:** `["Paracetamol", "Ibuprofen", "Tylenol"]` **Output:**
+
 ```json
 {
-  "input_name": "Paracetomol",
-  "corrected_name": "Paracetamol",
-  "generic_name": "Paracetamol",
-  "brand_names": ["Tylenol", "Panadol"],
-  "is_correct": false,
-  "is_generic": true,
-  "notes": "Common misspelling corrected."
+  "drugs": [
+    {
+      "input_name": "Paracetamol",
+      "corrected_name": "Paracetamol",
+      "generic_name": "Paracetamol",
+      "brand_names": ["Tylenol", "Panadol"],
+      "is_correct": true,
+      "is_generic": true,
+      "notes": "No spelling errors detected."
+    },
+    {
+      "input_name": "Ibuprofen",
+      "corrected_name": "Ibuprofen",
+      "generic_name": "Ibuprofen",
+      "brand_names": ["Advil", "Motrin", "Nurofen"],
+      "is_correct": true,
+      "is_generic": true,
+      "notes": "No spelling errors detected."
+    },
+    {
+      "input_name": "Tylenol",
+      "corrected_name": "Tylenol",
+      "generic_name": "Acetaminophen",
+      "brand_names": ["Tylenol", "FeverAll", "Mapap"],
+      "is_correct": true,
+      "is_generic": false,
+      "notes": "Brand name verified."
+    }
+  ]
 }
 ```
 
-#### **Example 3: Correct Spelling (Brand Name)**
-**Input:** `"Advil"`
-**Output:**
-```json
-{
-  "input_name": "Advil",
-  "corrected_name": "Advil",
-  "generic_name": "Ibuprofen",
-  "brand_names": ["Advil", "Motrin", "Nurofen"],
-  "is_correct": true,
-  "is_generic": false,
-  "notes": "Brand name verified."
-}
-```
+---
 
-#### **Example 4: Misspelled Brand Name**
-**Input:** `"Advilv"`
-**Output:**
-```json
-{
-  "input_name": "Advilv",
-  "corrected_name": "Advil",
-  "generic_name": "Ibuprofen",
-  "brand_names": ["Advil", "Motrin", "Nurofen"],
-  "is_correct": false,
-  "is_generic": false,
-  "notes": "Likely intended to be 'Advil'."
-}
-```
-
-#### **Example 5: Severe Misspelling with Uncertainty**
-**Input:** `"Asprn"`
-**Output:**
-```json
-{
-  "input_name": "Asprn",
-  "corrected_name": "Aspirin",
-  "generic_name": "Aspirin",
-  "brand_names": ["Bayer", "Bufferin", "Ecotrin"],
-  "is_correct": false,
-  "is_generic": true,
-  "notes": "Best guess based on phonetics and common errors."
-}
-```
-
-#### **Example 6: Misspelled Brand Name with Corrected Generic**
-**Input:** `"Tynol"`
-**Output:**
-```json
-{
-  "input_name": "Tynol",
-  "corrected_name": "Tylenol",
-  "generic_name": "Acetaminophen",
-  "brand_names": ["Tylenol", "FeverAll", "Mapap"],
-  "is_correct": false,
-  "is_generic": false,
-  "notes": "Likely intended to be 'Tylenol'."
-}
-```
-
-#### **Example 7: Completely Unclear Input**
-**Input:** `"Xytrnex"`
-**Output:**
-```json
-{
-  "input_name": "Xytrnex",
-  "corrected_name": "Unknown",
-  "generic_name": "N/A",
-  "brand_names": [],
-  "is_correct": false,
-  "is_generic": false,
-  "notes": "Unable to confidently determine the intended medicine."
-}
-```
 """
 # OCR
 

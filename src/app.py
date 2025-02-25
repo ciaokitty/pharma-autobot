@@ -42,7 +42,7 @@ if uploaded_file:
         uploaded_file.seek(0)
         
         with st.spinner("Extracting and verifying medicines..."):
-            st.session_state.final_data =  asyncio.run(process_prescription_with_spell_check(uploaded_file))
+            st.session_state.final_data =  process_prescription_with_spell_check(uploaded_file)
             logger.info("Image processing complete")
             
             st.session_state.has_processed = True
