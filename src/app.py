@@ -2,7 +2,7 @@ import streamlit as st
 from ocr import *
 import PIL.Image
 import json
-from schema import MedicationResponse
+from schema import MedicationResponse, Medication, Instructions
 import logging
 import pandas as pd
 
@@ -18,6 +18,44 @@ logging.basicConfig(
 # Configure logger for this module
 logger = logging.getLogger(__name__)
 
+# Function to generate dummy data for testing
+def generate_dummy_data():
+    """Generate dummy prescription data for testing purposes"""
+    return MedicationResponse(
+        medications=[
+            Medication(
+                medication_name="Amoxicillin",
+                dosage="500mg",
+                quantity=30,
+                instructions=Instructions(
+                    how="Take with food",
+                    how_much="1 tablet",
+                    when="Every 8 hours for 7 days"
+                )
+            ),
+            Medication(
+                medication_name="Ibuprofen",
+                dosage="200mg",
+                quantity=15,
+                instructions=Instructions(
+                    how="Take as needed",
+                    how_much="1 tablet",
+                    when="Every 6 hours if pain persists"
+                )
+            ),
+            Medication(
+                medication_name="Lorazepam",
+                dosage="1mg",
+                quantity=30,
+                instructions=Instructions(
+                    how="Take at bedtime",
+                    how_much="1 tablet",
+                    when="Every night for anxiety"
+                )
+            )
+        ]
+    )
+
 # Initialize session state variables if they don't exist
 if 'extracted_text' not in st.session_state:
     st.session_state.extracted_text = None
@@ -27,28 +65,44 @@ if 'structured_data' not in st.session_state:
     st.session_state.structured_data = None
 if 'edited_data' not in st.session_state:
     st.session_state.edited_data = None
+if 'final_data' not in st.session_state:
+    st.session_state.final_data = None
+if 'use_dummy_data' not in st.session_state:
+    st.session_state.use_dummy_data = False
 
 st.title("Pharmacist's Assistant")
 logger.info("Application started")
 st.write("Upload a prescription image, and we'll extract and verify the medicines for you.")
 
+# Add a checkbox to toggle between real processing and dummy data
+use_dummy = st.checkbox("Use dummy data for testing", value=st.session_state.use_dummy_data)
+if use_dummy != st.session_state.use_dummy_data:
+    st.session_state.use_dummy_data = use_dummy
+    st.session_state.has_processed = False
+    st.session_state.final_data = None
+
 uploaded_file = st.file_uploader("Upload Prescription Image", type=["png", "jpg", "jpeg"])
 
-if uploaded_file:
-    logger.info("File uploaded: %s", uploaded_file.name)
-    image = PIL.Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_container_width=True)
+if uploaded_file or st.session_state.use_dummy_data:
+    if uploaded_file and not st.session_state.use_dummy_data:
+        logger.info("File uploaded: %s", uploaded_file.name)
+        image = PIL.Image.open(uploaded_file)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
     
     # Only process the image if it hasn't been processed yet
     if not st.session_state.has_processed:
-        logger.info("Processing image")
-        uploaded_file.seek(0)
-        
-        with st.spinner("Extracting and verifying medicines..."):
-            st.session_state.final_data =  process_prescription_with_spell_check(uploaded_file)
-            logger.info("Image processing complete")
+        if st.session_state.use_dummy_data:
+            logger.info("Using dummy data for testing")
+            st.session_state.final_data = generate_dummy_data()
+        else:
+            logger.info("Processing image")
+            uploaded_file.seek(0)
             
-            st.session_state.has_processed = True
+            with st.spinner("Extracting and verifying medicines..."):
+                st.session_state.final_data = process_prescription_with_spell_check(uploaded_file)
+                logger.info("Image processing complete")
+        
+        st.session_state.has_processed = True
     
     
     st.subheader("Analyzed Prescription:")
