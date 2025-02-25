@@ -35,4 +35,25 @@ class MedicationResponse(BaseModel):
     Attributes:
         medications: List of medication information
     """
-    medications: list[Medication] = Field(..., description="List of medication information") 
+    medications: list[Medication] = Field(..., description="List of medication information")
+
+class SpellCheckResponse(BaseModel):
+    """
+    Response model for spell-checked medication names.
+    
+    Attributes:
+        input_name: Original input name
+        corrected_name: Corrected name or original if correct
+        generic_name: Generic drug name or 'N/A'
+        brand_names: List of brand names
+        is_correct: Whether the original spelling was correct
+        is_generic: Whether the name is a generic name
+        notes: Additional comments if needed
+    """
+    input_name: str = Field(..., description="Original input name")
+    corrected_name: str = Field(..., description="Corrected name or original if correct")
+    generic_name: str = Field(..., description="Generic drug name or 'N/A'")
+    brand_names: list[str] = Field(..., description="List of brand names")
+    is_correct: bool = Field(..., description="Whether the original spelling was correct")
+    is_generic: bool = Field(..., description="Whether the name is a generic name")
+    notes: str = Field(..., description="Additional comments if needed") 

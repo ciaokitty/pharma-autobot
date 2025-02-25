@@ -26,18 +26,22 @@ if uploaded_file:
         uploaded_file.seek(0)
         
         with st.spinner("Extracting and verifying medicines..."):
-            st.session_state.structured_data = extract_text_from_image(uploaded_file)
+            st.session_state.final_data =  asyncio.run(process_prescription_with_spell_check(uploaded_file))
+            
             st.session_state.has_processed = True
     
     
     st.subheader("Analyzed Prescription:")
     
     # Display structured data in a more user-friendly format
-    if st.session_state.structured_data:
-        data = st.session_state.structured_data
-        names = get_medicine_names(data)
-        print(type(names))
-        st.write(names)
+    if st.session_state.final_data:
+        data = st.session_state.final_data
         st.write(data)
+        # names = get_medicine_names(data)
+        # print(type(names))
+        
+        # st.write(names)
+        
+        # st.write(data)
     
 
