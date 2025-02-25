@@ -52,7 +52,7 @@ class SpellCheck(BaseModel):
     """
     input_name: str = Field(..., description="Original input name")
     corrected_name: str = Field(..., description="Corrected name or original if correct")
-    generic_name: str = Field(..., description="Generic drug name or 'N/A'")
+    generic_name: list[str] = Field(..., description="Generic drug name or 'N/A'")
     brand_names: list[str] = Field(..., description="List of brand names")
     is_correct: bool = Field(..., description="Whether the original spelling was correct")
     is_generic: bool = Field(..., description="Whether the name is a generic name")

@@ -193,8 +193,8 @@ def process_prescription_with_spell_check(image):
         image: The prescription image file
         
     Returns:
-        tuple: (MedicationResponse, list[SpellCheckResponse]) containing the 
-               original medication data and spell check results
+        tuple: (MedicationResponse, SpellCheckResponse) containing the 
+               fixed medication data and spell check results
     """
     # First extract medication data from the image
     medication_data = extract_text_from_image(image)
@@ -208,7 +208,7 @@ def process_prescription_with_spell_check(image):
     fixed_medication_data = fix_spellings(medication_data, spell_check_results)
     print(fixed_medication_data)
 
-    return fixed_medication_data
+    return fixed_medication_data, spell_check_results
     
     
 

@@ -14,7 +14,7 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
     {
       "input_name": "<original input>",
       "corrected_name": "<corrected name or original if correct>",
-      "generic_name": "<generic drug name or 'N/A'>",
+      "generic_name": ["<component 1 generic drug name>", "<component 2 generic drug name>", "..."],
       "brand_names": ["<brand name 1>", "<brand name 2>", "..."],
       "is_correct": <true/false>,
       "is_generic": <true/false>,
@@ -38,7 +38,7 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
     {
       "input_name": "Paracetomol",
       "corrected_name": "Paracetamol",
-      "generic_name": "Paracetamol",
+      "generic_name": ["Paracetamol"],
       "brand_names": ["Tylenol", "Panadol"],
       "is_correct": false,
       "is_generic": true,
@@ -47,7 +47,7 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
     {
       "input_name": "Advilv",
       "corrected_name": "Advil",
-      "generic_name": "Ibuprofen",
+      "generic_name": ["Ibuprofen"],
       "brand_names": ["Advil", "Motrin", "Nurofen"],
       "is_correct": false,
       "is_generic": false,
@@ -56,7 +56,7 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
     {
       "input_name": "Xytrnex",
       "corrected_name": "Unknown",
-      "generic_name": "N/A",
+      "generic_name": [],
       "brand_names": [],
       "is_correct": false,
       "is_generic": false,
@@ -68,7 +68,7 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
 
 #### **Example 2: Fully Correct Inputs**
 
-**Input:** `["Paracetamol", "Ibuprofen", "Tylenol"]` **Output:**
+**Input:** `["Paracetamol", "Ibuprofen", "Tylenol", "Enzoflam"]` **Output:**
 
 ```json
 {
@@ -76,7 +76,7 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
     {
       "input_name": "Paracetamol",
       "corrected_name": "Paracetamol",
-      "generic_name": "Paracetamol",
+      "generic_name": ["Paracetamol"],
       "brand_names": ["Tylenol", "Panadol"],
       "is_correct": true,
       "is_generic": true,
@@ -85,7 +85,7 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
     {
       "input_name": "Ibuprofen",
       "corrected_name": "Ibuprofen",
-      "generic_name": "Ibuprofen",
+      "generic_name": ["Ibuprofen"],
       "brand_names": ["Advil", "Motrin", "Nurofen"],
       "is_correct": true,
       "is_generic": true,
@@ -94,11 +94,20 @@ spell_structured_output_prompt = r"""Provide all the above responses in the foll
     {
       "input_name": "Tylenol",
       "corrected_name": "Tylenol",
-      "generic_name": "Acetaminophen",
+      "generic_name": ["Acetaminophen"],
       "brand_names": ["Tylenol", "FeverAll", "Mapap"],
       "is_correct": true,
       "is_generic": false,
       "notes": "Brand name verified."
+    },
+    {
+      "input_name": "Enzoflam",
+      "corrected_name": "Enzoflam",
+      "generic_name": ["Diclofenac", "Paracetamol", "Serratiopeptidase"],
+      "brand_names": ["Enzoflam MR", "Enzoflam SP", "Enzoflam CT", "Enzoflam P", "Enzoflam Gel", "Enzoflam Micro Gel"],
+      "is_correct": true,
+      "is_generic": false,
+      "notes": "Brand name verified. It's a combination drug."
     }
   ]
 }

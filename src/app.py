@@ -2,7 +2,7 @@ import streamlit as st
 from ocr import *
 import PIL.Image
 import json
-from schema import MedicationResponse, Medication, Instructions
+from schema import MedicationResponse, Medication, Instructions, SpellCheckResponse
 import logging
 import pandas as pd
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Function to generate dummy data for testing
 def generate_dummy_data():
     """Generate dummy prescription data for testing purposes"""
-    return MedicationResponse(
+    medication_data = MedicationResponse(
         medications=[
             Medication(
                 medication_name="Amoxicillin",
@@ -52,9 +52,127 @@ def generate_dummy_data():
                     how_much="1 tablet",
                     when="Every night for anxiety"
                 )
+            ),
+            Medication(
+                medication_name="Paracetamol",
+                dosage="500mg",
+                quantity=15,
+                instructions=Instructions(
+                    how="Take with water",
+                    how_much="1 tablet",
+                    when="Every 4-6 hours for pain"
+                )
+            ),
+            Medication(
+                medication_name="Amoxicillin + Clavulanate",
+                dosage="500mg + 125mg",
+                quantity=21,
+                instructions=Instructions(
+                    how="Take with food",
+                    how_much="1 tablet",
+                    when="Every 8 hours for 7 days"
+                )
+            ),
+            Medication(
+                medication_name="Sertraline",
+                dosage="50mg",
+                quantity=30,
+                instructions=Instructions(
+                    how="Take with water",
+                    how_much="1 tablet",
+                    when="Every morning"
+                )
             )
         ]
     )
+    
+    spell_check_data = SpellCheckResponse(
+        drugs=[
+            {
+                "input_name": "Amoxicillin",
+                "corrected_name": "Amoxicillin",
+                "generic_name": ["Amoxicillin"],
+                "brand_names": ["Amoxil", "Trimox"],
+                "is_correct": True,
+                "is_generic": True,
+                "notes": "No spelling errors detected."
+            },
+            {
+                "input_name": "Ibuprofen",
+                "corrected_name": "Ibuprofen",
+                "generic_name": ["Ibuprofen"],
+                "brand_names": ["Advil", "Motrin", "Nurofen"],
+                "is_correct": True,
+                "is_generic": True,
+                "notes": "No spelling errors detected."
+            },
+            {
+                "input_name": "Lorazepam",
+                "corrected_name": "Lorazepam",
+                "generic_name": ["Lorazepam"],
+                "brand_names": ["Ativan"],
+                "is_correct": True,
+                "is_generic": True,
+                "notes": "No spelling errors detected."
+            },
+            {
+                "input_name": "Paracetomol",
+                "corrected_name": "Paracetamol",
+                "generic_name": ["Paracetamol"],
+                "brand_names": ["Tylenol", "Panadol"],
+                "is_correct": False,
+                "is_generic": True,
+                "notes": "Common misspelling corrected."
+            },
+            {
+                "input_name": "Amoxicillin + Clavulanate",
+                "corrected_name": "Amoxicillin + Clavulanate",
+                "generic_name": ["Amoxicillin", "Clavulanic Acid"],
+                "brand_names": ["Augmentin", "Clavamox"],
+                "is_correct": True,
+                "is_generic": True,
+                "notes": "Combination drug verified."
+            },
+            {
+                "input_name": "Sertraline",
+                "corrected_name": "Sertraline",
+                "generic_name": ["Sertraline"],
+                "brand_names": ["Zoloft"],
+                "is_correct": True,
+                "is_generic": True,
+                "notes": "No spelling errors detected."
+            },
+            {
+                "input_name": "Enzoflam",
+                "corrected_name": "Enzoflam",
+                "generic_name": ["Diclofenac", "Paracetamol", "Serratiopeptidase"],
+                "brand_names": ["Enzoflam MR", "Enzoflam SP", "Enzoflam CT", "Enzoflam P", "Enzoflam Gel"],
+                "is_correct": True,
+                "is_generic": False,
+                "notes": "Brand name verified. It's a combination drug."
+            },
+            {
+                "input_name": "Advilv",
+                "corrected_name": "Advil",
+                "generic_name": ["Ibuprofen"],
+                "brand_names": ["Advil", "Motrin", "Nurofen"],
+                "is_correct": False,
+                "is_generic": False,
+                "notes": "Likely intended to be 'Advil'."
+            },
+            {
+                "input_name": "Xytrnex",
+                "corrected_name": "Unknown",
+                "generic_name": [],
+                "brand_names": [],
+                "is_correct": False,
+                "is_generic": False,
+                "notes": "Unable to confidently determine the intended medicine."
+            }
+        ]
+    )
+    
+    return medication_data, spell_check_data
 
 # Initialize session state variables if they don't exist
 if 'extracted_text' not in st.session_state:
@@ -63,6 +181,8 @@ if 'has_processed' not in st.session_state:
     st.session_state.has_processed = False
 if 'structured_data' not in st.session_state:
     st.session_state.structured_data = None
+if 'spell_check_data' not in st.session_state:
+    st.session_state.spell_check_data = None
 if 'edited_data' not in st.session_state:
     st.session_state.edited_data = None
 if 'final_data' not in st.session_state:
@@ -93,13 +213,13 @@ if uploaded_file or st.session_state.use_dummy_data:
     if not st.session_state.has_processed:
         if st.session_state.use_dummy_data:
             logger.info("Using dummy data for testing")
-            st.session_state.final_data = generate_dummy_data()
+            st.session_state.final_data, st.session_state.spell_check_data = generate_dummy_data()
         else:
             logger.info("Processing image")
             uploaded_file.seek(0)
             
             with st.spinner("Extracting and verifying medicines..."):
-                st.session_state.final_data = process_prescription_with_spell_check(uploaded_file)
+                st.session_state.final_data, st.session_state.spell_check_data = process_prescription_with_spell_check(uploaded_file)
                 logger.info("Image processing complete")
         
         st.session_state.has_processed = True
@@ -173,4 +293,49 @@ if uploaded_file or st.session_state.use_dummy_data:
         else:
             st.warning("No medication data found in the processed results.")
     
+    # Display spell check data
+    if st.session_state.spell_check_data:
+        st.subheader("Spell Check Results:")
+        spell_check_data = st.session_state.spell_check_data
+        
+        if hasattr(spell_check_data, 'drugs') and spell_check_data.drugs:
+            # Create a list to store the spell check data
+            spell_check_table = []
+            
+            for drug in spell_check_data.drugs:
+                # Create a dictionary for each drug
+                drug_dict = {
+                    "Original Name": drug.input_name,
+                    "Corrected Name": drug.corrected_name,
+                    "Generic Names": ", ".join(drug.generic_name),
+                    "Brand Names": ", ".join(drug.brand_names),
+                    "Correctly Spelled": "✓" if drug.is_correct else "✗",
+                    "Is Generic": "Yes" if drug.is_generic else "No",
+                    "Notes": drug.notes
+                }
+                spell_check_table.append(drug_dict)
+            
+            # Convert to DataFrame for display
+            spell_check_df = pd.DataFrame(spell_check_table)
+            
+            # Display the table
+            st.dataframe(
+                spell_check_df,
+                use_container_width=True,
+                column_config={
+                    "Original Name": st.column_config.TextColumn("Original Name", help="Original medication name from prescription"),
+                    "Corrected Name": st.column_config.TextColumn("Corrected Name", help="Corrected medication name"),
+                    "Generic Names": st.column_config.TextColumn("Generic Names", help="Generic names of the medication"),
+                    "Brand Names": st.column_config.TextColumn("Brand Names", help="Common brand names"),
+                    "Correctly Spelled": st.column_config.TextColumn("Correctly Spelled", help="Whether the original spelling was correct"),
+                    "Is Generic": st.column_config.TextColumn("Is Generic", help="Whether the name is a generic drug name"),
+                    "Notes": st.column_config.TextColumn("Notes", help="Additional information")
+                }
+            )
+            
+            # Add an expandable section with the raw spell check data
+            with st.expander("View Raw Spell Check Data"):
+                st.json(json.loads(spell_check_data.json()))
+        else:
+            st.warning("No spell check data found in the processed results.")
 
