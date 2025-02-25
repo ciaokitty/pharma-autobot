@@ -44,7 +44,8 @@ def extract_text_from_image(image):
     """
     
     response = client.models.generate_content(
-        model="gemini-2.0-pro-exp-02-05",
+        # model="gemini-2.0-pro-exp-02-05",
+        model="gemini-2.0-flash-lite-preview-02-05"
         contents=[prompt, b64_image],
         config={
         'response_mime_type': 'application/json',

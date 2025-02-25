@@ -9,16 +9,22 @@ from prompts import *
 from schema import MedicationResponse, SpellCheckResponse
 import asyncio
 from exceptions import *
+import logging
+
+# Configure module-specific logger
+logger = logging.getLogger(__name__)
 
 # Function to rotate API keys
 class APIKeyRotator:
     def __init__(self, keys: list[str]):
         self.keys = keys
         self.index = 0
+        logger.info("APIKeyRotator initialized with %d keys", len(keys))
 
     def get_next_key(self) -> str:
         key = self.keys[self.index]
         self.index = (self.index + 1) % len(self.keys)
+        logger.info("API key rotated to index %d", self.index)
         return key
 
 # Load API keys from .env file
@@ -36,6 +42,7 @@ def extract_text_from_image(image) -> MedicationResponse:
     Returns:
         MedicationResponse: A structured response containing medication information
     """
+    logger.info("Extracting text from image")
     client = genai.Client(api_key=api_key_rotator.get_next_key())
     image_bytes = image.read()
     
@@ -52,6 +59,7 @@ def extract_text_from_image(image) -> MedicationResponse:
     # First pass: Extract text from image
     response = client.models.generate_content(
         model="gemini-2.0-pro-exp-02-05",
+        #model="gemini-2.0-flash-lite-preview-02-05",
         contents=[b64_image],
         config=GenerateContentConfig(
             system_instruction=ocr_system_prompt,
@@ -59,37 +67,36 @@ def extract_text_from_image(image) -> MedicationResponse:
             response_modalities=["TEXT"],
         ),
     )
-    #print(response.text)
+    logger.info("Text extraction response received")
     
     # Prevent NoneType errors
     if not response or not hasattr(response, "text"):
-        # Return empty response if no text detected
+        logger.warning("No text detected in image")
         return MedicationResponse(medications=[])
     
     # Second pass: Structure the extracted text
     response2 = client.models.generate_content(
         model="gemini-2.0-pro-exp-02-05",
+        #model="gemini-2.0-flash-lite-preview-02-05",
         contents=[ocr_structured_output_prompt, response.text],
         config={
             'response_mime_type': 'application/json',
             'response_schema': MedicationResponse,
         },
     )
+    logger.info("Structured text response received")
     
     # Try to parse the structured response
     try:
         if hasattr(response2, "parsed"):
-            # If the model returns a parsed object
-            print(type(response2.parsed))
-            print(response2.parsed)
+            logger.info("Parsed structured response successfully")
             return response2.parsed
         else:
-            # Fallback to empty response
+            logger.warning("Failed to parse structured response")
             return MedicationResponse(medications=[])
     except Exception as e:
-        print(f"Error parsing structured response: {e}")
-        # Return the raw text as a fallback
-        # return response.text
+        logger.error("Error parsing structured response: %s", e)
+        return MedicationResponse(medications=[])
 
 def get_medicine_names(data: MedicationResponse) -> list[str]:
     names = [i.medication_name for i in data.medications]
@@ -111,7 +118,8 @@ async def spell_check_medicine_name(name: str, client) -> SpellCheckResponse:
     )
     
     spell_check_response = await client.models.generate_content(
-        model="gemini-1.5-flash-8b",
+        # model="gemini-1.5-flash-8b",
+        model="gemini-2.0-flash-lite-preview-02-05",
         contents=[name],
         config=GenerateContentConfig(
             system_instruction=spell_system_prompt,
@@ -126,7 +134,8 @@ async def spell_check_medicine_name(name: str, client) -> SpellCheckResponse:
         raise GeminiError("spell check failed")
     
     brand_name_response = client.models.generate_content(
-    model="gemini-1.5-flash-8b",
+    # model="gemini-1.5-flash-8b",
+    model="gemini-2.0-flash-lite-preview-02-05",
     contents=[spell_list_brand_name_prompt, spell_check_response.text],
     config=GenerateContentConfig(
             tools=[google_search_tool],
@@ -139,7 +148,8 @@ async def spell_check_medicine_name(name: str, client) -> SpellCheckResponse:
 
     # Structure the response
     structured_response = await client.models.generate_content(
-        model="gemini-1.5-flash-8b",
+        # model="gemini-1.5-flash-8b",
+        model="gemini-2.0-flash-lite-preview-02-05",
         contents=[spell_structured_output_prompt, spell_check_response.text, brand_name_response.text],
         config={
             'response_mime_type': 'application/json',
@@ -159,6 +169,7 @@ async def spell_check_medicine_name(name: str, client) -> SpellCheckResponse:
 async def spell_check_all_medicines(names: list[str]) -> list[SpellCheckResponse]:
     """
     Asynchronously spell checks multiple medicine names using Google Gemini.
+    Each task uses a different API key through rotation.
     
     Args:
         names: List of medicine names to spell check
@@ -167,6 +178,7 @@ async def spell_check_all_medicines(names: list[str]) -> list[SpellCheckResponse
         list[SpellCheckResponse]: A list of structured responses for each medicine name
     """
     client = genai.Client(api_key=api_key_rotator.get_next_key())
+
     tasks = [spell_check_medicine_name(name, client) for name in names]
     results = await asyncio.gather(*tasks)
     return results
