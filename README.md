@@ -12,9 +12,12 @@ Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas
 
 - **Prescription OCR**: Extract medication information from uploaded prescription images
 - **Drug Name Verification**: Automatically spell-check and verify medication names
+- **Display common brand names**: Shows commonly available brand-name medications
+- **Calculate dosage and quantity required**: Determines the required quantity based on dosage and frequency
+- **Download Analysed Prrescription**: Download the extracted and analysed prescription in CSV format.
 - **Medication Management**: Edit and manage extracted medication information
 - **WhatsApp Integration**: Send medication orders directly to pharmacies via WhatsApp
-- **Testing Mode**: Use dummy data for testing the application without uploading images
+- **Testing Mode**: Use dummy data for testing the application without uploading images again and again.
 
 ## Setup Instructions
 
@@ -51,13 +54,18 @@ Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas
    # Install dependencies with uv (much faster than pip)
    uv pip install -r requirements.txt
    ```
+   Or alternatively you can directly run:
+   ```bash
+   uv sync
+   source .venv/bin/activate
+   ```
 
 3. If using standard pip, install the required dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Create a `.env` file in the root directory with your Google Gemini API key(s):
+4. Create a `.env` file in the `/src` directory with your Google Gemini API key(s):
    ```
    API_KEY=your_primary_api_key
    API_KEY1=your_backup_api_key1
