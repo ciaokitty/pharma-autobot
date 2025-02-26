@@ -5,6 +5,8 @@ import json
 from schema import MedicationResponse, Medication, Instructions, SpellCheckResponse
 import logging
 import pandas as pd
+import webbrowser
+from urllib.parse import quote
 
 # Configure logging for the entire application
 logging.basicConfig(
@@ -174,6 +176,33 @@ def generate_dummy_data():
     
     return medication_data, spell_check_data
 
+# Function to send order via WhatsApp
+def send_order_via_whatsapp(medications, pharmacy_number="9012330066"):
+    """
+    Send medication list to a pharmacy via WhatsApp
+    
+    Args:
+        medications: List of medication dictionaries
+        pharmacy_number: WhatsApp number of the pharmacy
+    """
+    # Format message with medication details
+    message = "Hello, I want to order the following medicines:\n\n"
+    
+    for med in medications:
+        med_line = f"• {med['Medication Name']} {med['Dosage']} - Qty: {med['Quantity']}"
+        message += med_line + "\n"
+    
+    # Encode message for URL
+    encoded_message = quote(message)
+    
+    # Generate WhatsApp Web/Mobile link
+    whatsapp_url = f"https://wa.me/{pharmacy_number}?text={encoded_message}"
+    
+    # Open WhatsApp with the pre-filled message
+    webbrowser.open(whatsapp_url)
+    
+    return message
+
 # Initialize session state variables if they don't exist
 if 'extracted_text' not in st.session_state:
     st.session_state.extracted_text = None
@@ -270,6 +299,40 @@ if uploaded_file or st.session_state.use_dummy_data:
             
             # Store the edited dataframe in session state
             st.session_state.edited_data = edited_df
+            
+            # Add WhatsApp order button
+            pharmacy_number = st.text_input("Pharmacy WhatsApp Number ", value="")
+            
+            # Format the message for preview
+            if "whatsapp_message" not in st.session_state:
+                # Initialize with default message
+                medications_to_order = edited_df.to_dict('records')
+                message = "Hello, I want to order the following medicines:\n\n"
+                for med in medications_to_order:
+                    message += f"-- {med['Medication Name']} {med['Dosage']} - Qty: {med['Quantity']}\n"
+                st.session_state.whatsapp_message = message
+            
+            # Show message preview with editing capability
+            st.subheader("Message Preview")
+            st.session_state.whatsapp_message = st.text_area(
+                "Edit your message before sending:",
+                value=st.session_state.whatsapp_message,
+                height=200
+            )
+            
+            # Send button
+            if st.button("Send Order via WhatsApp"):
+                # Encode message for URL
+                encoded_message = quote(st.session_state.whatsapp_message)
+                
+                # Generate WhatsApp Web/Mobile link
+                whatsapp_url = f"https://wa.me/{pharmacy_number}?text={encoded_message}"
+                
+                # Open WhatsApp with the pre-filled message
+                webbrowser.open(whatsapp_url)
+                
+                # Show confirmation
+                st.success("Opening WhatsApp with your order!")
             
             # Show information about edits
             with st.expander("View Edit Information"):
