@@ -112,4 +112,15 @@ The project structure includes:
 ![WhatsApp Integration](screenshots/Screenshot%202025-02-26%20120034.png)
 
 
+## Future Plan
+ 
+### Drug Information Display  
+- Fetches data from Tata 1mg and other sources.  
+- Displays side effects and health warnings.  
 
+### E-Commerce Integration  
+- Supports one-click multi-platform "Add to Cart" functionality.  
+- Uses APIs or web automation for orders.  
+- Handles authentication and tracks cart status.
+
+![Future plans](screenshots/future-pharma-bot.png)
