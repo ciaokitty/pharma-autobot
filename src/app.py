@@ -177,7 +177,7 @@ def generate_dummy_data():
     return medication_data, spell_check_data
 
 # Function to send order via WhatsApp
-def send_order_via_whatsapp(medications, pharmacy_number="9012330066"):
+def send_order_via_whatsapp(medications, pharmacy_number):
     """
     Send medication list to a pharmacy via WhatsApp
     
