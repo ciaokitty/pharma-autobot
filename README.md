@@ -11,13 +11,15 @@ Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas
 ## Features
 
 - **Prescription OCR**: Extract medication information from uploaded prescription images
-- **Drug Name Verification**: Automatically spell-check and verify medication names
+- **Custom System Prompt**: Detailed custom system prompt that handles messy handwriting (e.g. striked out words), abbreviations, and dosage instructions to reduce errors
+- **Drug Name Verification**: Automatically spell-check and verify medication names using Google Search Grounding
 - **Display common brand names**: Shows commonly available brand-name medications
-- **Calculate dosage and quantity required**: Determines the required quantity based on dosage and frequency
-- **Download Analysed Prrescription**: Download the extracted and analysed prescription in CSV format.
+- **Display Dosage and Intake Instructions**: Deciphers common prescription notations and clearly presents how much, how often, and when to take each medication.
+- **Calculate order quantity required**: Determines the required order quantity based on dosage and frequency
+- **Download Analysed Prrescription**: Download the extracted and analysed prescription in CSV format
 - **Medication Management**: Edit and manage extracted medication information
 - **WhatsApp Integration**: Send medication orders directly to pharmacies via WhatsApp
-- **Testing Mode**: Use dummy data for testing the application without uploading images again and again.
+- **Testing Mode**: Use dummy data for testing the application without uploading images again and again
 
 ## Setup Instructions
 
@@ -73,16 +75,14 @@ Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas
    API_KEY3=your_backup_api_key3
    API_KEY4=your_backup_api_key4
    ```
-   Note: You can use just one API key or multiple keys for rotation to avoid exhausting your requests.
+   I had to use multiple API keys to avoid rate limits.
 
 ### Running the Application
 
-Start the Streamlit application:
+Start the Streamlit application locally on your browser by running this:
 ```bash
 streamlit run src/app.py
 ```
-
-The application will be available at http://localhost:8501 in your web browser.
 
 ## Usage
 
@@ -92,7 +92,7 @@ The application will be available at http://localhost:8501 in your web browser.
 4. Enter a pharmacy's WhatsApp number to send the order
 5. Customize the message if needed and click "Send Order via WhatsApp"
 
-## Development
+## Project Structure
 
 The project structure includes:
 - `src/app.py`: Main Streamlit application
