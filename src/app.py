@@ -20,9 +20,14 @@ logging.basicConfig(
 # Configure logger for this module
 logger = logging.getLogger(__name__)
 
-# Function to generate dummy data for testing
 def generate_dummy_data():
-    """Generate dummy prescription data for testing purposes"""
+    """
+    Generate dummy prescription data for testing purposes.
+    
+    Returns:
+        tuple: (MedicationResponse, SpellCheckResponse) containing sample medication
+               and spell check data
+    """
     medication_data = MedicationResponse(
         medications=[
             Medication(
@@ -176,14 +181,16 @@ def generate_dummy_data():
     
     return medication_data, spell_check_data
 
-# Function to send order via WhatsApp
 def send_order_via_whatsapp(medications, pharmacy_number):
     """
-    Send medication list to a pharmacy via WhatsApp
+    Send medication list to a pharmacy via WhatsApp.
     
     Args:
         medications: List of medication dictionaries
         pharmacy_number: WhatsApp number of the pharmacy
+        
+    Returns:
+        str: The formatted message sent to WhatsApp
     """
     # Format message with medication details
     message = "Hello, I want to order the following medicines:\n\n"

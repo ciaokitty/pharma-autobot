@@ -14,14 +14,26 @@ import logging
 # Configure module-specific logger
 logger = logging.getLogger(__name__)
 
-# Function to rotate API keys
 class APIKeyRotator:
+    """
+    Rotates through a list of API keys to distribute API usage.
+    
+    Attributes:
+        keys: List of API keys to rotate through
+        index: Current index in the rotation
+    """
     def __init__(self, keys: list[str]):
         self.keys = keys
         self.index = 0
         logger.info("APIKeyRotator initialized with %d keys", len(keys))
 
     def get_next_key(self) -> str:
+        """
+        Returns the next API key in the rotation.
+        
+        Returns:
+            str: The next API key
+        """
         key = self.keys[self.index]
         self.index = (self.index + 1) % len(self.keys)
         logger.info("API key rotated to index %d", self.index)
@@ -58,8 +70,6 @@ def extract_text_from_image(image) -> MedicationResponse:
     
     # First pass: Extract text from image
     response = client.models.generate_content(
-        # model="gemini-2.0-pro-exp-02-05",
-        #model="gemini-2.0-flash-lite-preview-02-05",
         model="gemini-2.0-flash",
         contents=["this", b64_image],
         config=GenerateContentConfig(
@@ -77,8 +87,6 @@ def extract_text_from_image(image) -> MedicationResponse:
     
     # Second pass: Structure the extracted text
     response2 = client.models.generate_content(
-        # model="gemini-2.0-pro-exp-02-05",
-        #model="gemini-2.0-flash-lite-preview-02-05",
         model="gemini-2.0-flash",
         contents=[ocr_structured_output_prompt, response.text],
         config={
@@ -101,15 +109,24 @@ def extract_text_from_image(image) -> MedicationResponse:
         return MedicationResponse(medications=[])
 
 def get_medicine_names(data: MedicationResponse) -> list[str]:
+    """
+    Extracts all medication names from a MedicationResponse object.
+    
+    Args:
+        data: MedicationResponse object containing medications
+        
+    Returns:
+        list[str]: List of medication names
+    """
     names = [i.medication_name for i in data.medications]
     return names
 
 def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     """
-    Spell checks a medicine name using Google Gemini.
+    Spell checks medicine names using Google Gemini.
     
     Args:
-        name: The medicine name to spell check
+        names: List of medicine names to spell check
         client: The Google Gemini client
         
     Returns:
@@ -122,8 +139,6 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     
     logger.info("Initiating initial spell check request")
     spell_check_response = client.models.generate_content(
-        # model="gemini-1.5-flash-8b",
-        # model="gemini-2.0-flash-lite-preview-02-05",
         model="gemini-2.0-flash",
         contents=[names],
         config=GenerateContentConfig(
@@ -140,11 +155,9 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     
     logger.info("Initial spell check completed, requesting brand name information")
     brand_name_response = client.models.generate_content(
-    # model="gemini-1.5-flash-8b",
-    model="gemini-2.0-flash",
-    # model="gemini-2.0-flash-lite-preview-02-05",
-    contents=[spell_list_brand_name_prompt, spell_check_response.text],
-    config=GenerateContentConfig(
+        model="gemini-2.0-flash",
+        contents=[spell_list_brand_name_prompt, spell_check_response.text],
+        config=GenerateContentConfig(
             tools=[google_search_tool],
             response_modalities=["TEXT"],
         ),
@@ -156,8 +169,6 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     logger.info("Brand name information received, generating structured response")
     # Structure the response
     structured_response = client.models.generate_content(
-        # model="gemini-1.5-flash-8b",
-        # model="gemini-2.0-flash-lite-preview-02-05",
         model="gemini-2.0-flash",
         contents=[spell_structured_output_prompt, spell_check_response.text, brand_name_response.text],
         config={
@@ -167,17 +178,24 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     )
     
     # Try to parse the structured response
-    
     if hasattr(structured_response, "parsed"):
         logger.info("Successfully generated structured spell check response")
         return structured_response.parsed
     else:
         logger.error("Failed to generate structured output")
         raise GeminiError("structured output generation failed")
-   
-
 
 def fix_spellings(medication_response: MedicationResponse, spell_check_response: SpellCheckResponse) -> MedicationResponse:
+    """
+    Updates medication names with corrected spellings.
+    
+    Args:
+        medication_response: Original medication data
+        spell_check_response: Spell check results
+        
+    Returns:
+        MedicationResponse: Updated medication data with corrected spellings
+    """
     for spell_check in spell_check_response.drugs:
         if not spell_check.is_correct:
             for medicine in medication_response.medications:
@@ -202,11 +220,10 @@ def process_prescription_with_spell_check(image):
     # Get all medicine names
     medicine_names = get_medicine_names(medication_data)
     client = genai.Client(api_key=api_key_rotator.get_next_key())
-    # Spell check all medicine names asynchronously
+    # Spell check all medicine names
     spell_check_results = spell_check_medicine_names(medicine_names, client)
 
     fixed_medication_data = fix_spellings(medication_data, spell_check_results)
-    print(fixed_medication_data)
 
     return fixed_medication_data, spell_check_results
     

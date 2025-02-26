@@ -2,6 +2,12 @@
 
 Pharma-Autobot is a web application designed to help pharmacists and patients process prescriptions more efficiently. The application uses Google's Gemini AI to extract medication information from prescription images, verify drug names, and provides a user-friendly interface for managing medication orders.
 
+### **Design Approach and Philosophy**  
+
+Training a custom model for Handwritten Text Recognition (HTR) didn’t seem practical after testing some of the highest-ranked OCR models from [Papers with Code](https://paperswithcode.com/task/handwritten-text-recognition/). Even with well-written prescriptions, they struggled to produce meaningful results.  
+
+Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas.edu/~eunsol/courses/data/bitter_lesson.pdf), it made more sense to leverage existing large-scale models rather than build something from scratch. Google Gemini’s vision models performed remarkably well at extracting text from handwritten notes, making them the best fit for this project. Instead of reinventing the wheel, the focus shifted to integrating and fine-tuning something that gets the job done efficiently.
+
 ## Features
 
 - **Prescription OCR**: Extract medication information from uploaded prescription images
@@ -101,6 +107,9 @@ The project structure includes:
 
 ![Order Customization](screenshots/Screenshot%202025-02-26%20034110.png)
 
-![WhatsApp Integration](screenshots/Screenshot%202025-02-26%20034121.png)
+![Spell Check Results](screenshots/Screenshot%202025-02-26%20034121.png)
+
+![WhatsApp Integration](screenshots/Screenshot%202025-02-26%20120034.png)
+
 
 

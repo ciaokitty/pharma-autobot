@@ -1,6 +1,17 @@
 import requests
 
 def get_drug_warnings(drug_name):
+    """
+    (WIP)
+    Retrieves drug warnings from the FDA API.
+    
+    Args:
+        drug_name: Name of the drug to search for
+        
+    Returns:
+        dict: Dictionary containing warnings, boxed warnings, and adverse reactions,
+              or an error message if the request fails
+    """
     url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{drug_name}&limit=1"
     
     try:
@@ -27,10 +38,11 @@ def get_drug_warnings(drug_name):
         return {"error": f"API request failed: {e}"}
 
 # Example usage
-drug_name = "levonorgestrel" #s dynamically
-warnings_data = get_drug_warnings(drug_name)
-
-# Display the results
-print(f"**Warnings for {drug_name}**")
-for key, value in warnings_data.items():
-    print(f"{key.capitalize()}: {value}\n")
+if __name__ == "__main__":
+    drug_name = "levonorgestrel"
+    warnings_data = get_drug_warnings(drug_name)
+    
+    # Display the results
+    print(f"**Warnings for {drug_name}**")
+    for key, value in warnings_data.items():
+        print(f"{key.capitalize()}: {value}\n")
