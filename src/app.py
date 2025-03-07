@@ -1,12 +1,15 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from ocr import *
 import PIL.Image
 import json
+import pathlib
+from streamlit_lottie import st_lottie
 from schema import MedicationResponse, Medication, Instructions, SpellCheckResponse
 import logging
 import pandas as pd
-import webbrowser
-from urllib.parse import quote
+from dummydata import generate_dummy_data
+from whatsapp_order import send_order_via_whatsapp, format_whatsapp_message
 
 # Configure logging for the entire application
 logging.basicConfig(
@@ -20,195 +23,10 @@ logging.basicConfig(
 # Configure logger for this module
 logger = logging.getLogger(__name__)
 
-def generate_dummy_data():
-    """
-    Generate dummy prescription data for testing purposes.
-    
-    Returns:
-        tuple: (MedicationResponse, SpellCheckResponse) containing sample medication
-               and spell check data
-    """
-    medication_data = MedicationResponse(
-        medications=[
-            Medication(
-                medication_name="Amoxicillin",
-                dosage="500mg",
-                quantity=30,
-                instructions=Instructions(
-                    how="Take with food",
-                    how_much="1 tablet",
-                    when="Every 8 hours for 7 days"
-                )
-            ),
-            Medication(
-                medication_name="Ibuprofen",
-                dosage="200mg",
-                quantity=15,
-                instructions=Instructions(
-                    how="Take as needed",
-                    how_much="1 tablet",
-                    when="Every 6 hours if pain persists"
-                )
-            ),
-            Medication(
-                medication_name="Lorazepam",
-                dosage="1mg",
-                quantity=30,
-                instructions=Instructions(
-                    how="Take at bedtime",
-                    how_much="1 tablet",
-                    when="Every night for anxiety"
-                )
-            ),
-            Medication(
-                medication_name="Paracetamol",
-                dosage="500mg",
-                quantity=15,
-                instructions=Instructions(
-                    how="Take with water",
-                    how_much="1 tablet",
-                    when="Every 4-6 hours for pain"
-                )
-            ),
-            Medication(
-                medication_name="Amoxicillin + Clavulanate",
-                dosage="500mg + 125mg",
-                quantity=21,
-                instructions=Instructions(
-                    how="Take with food",
-                    how_much="1 tablet",
-                    when="Every 8 hours for 7 days"
-                )
-            ),
-            Medication(
-                medication_name="Sertraline",
-                dosage="50mg",
-                quantity=30,
-                instructions=Instructions(
-                    how="Take with water",
-                    how_much="1 tablet",
-                    when="Every morning"
-                )
-            )
-        ]
-    )
-    
-    spell_check_data = SpellCheckResponse(
-        drugs=[
-            {
-                "input_name": "Amoxicillin",
-                "corrected_name": "Amoxicillin",
-                "generic_name": ["Amoxicillin"],
-                "brand_names": ["Amoxil", "Trimox"],
-                "is_correct": True,
-                "is_generic": True,
-                "notes": "No spelling errors detected."
-            },
-            {
-                "input_name": "Ibuprofen",
-                "corrected_name": "Ibuprofen",
-                "generic_name": ["Ibuprofen"],
-                "brand_names": ["Advil", "Motrin", "Nurofen"],
-                "is_correct": True,
-                "is_generic": True,
-                "notes": "No spelling errors detected."
-            },
-            {
-                "input_name": "Lorazepam",
-                "corrected_name": "Lorazepam",
-                "generic_name": ["Lorazepam"],
-                "brand_names": ["Ativan"],
-                "is_correct": True,
-                "is_generic": True,
-                "notes": "No spelling errors detected."
-            },
-            {
-                "input_name": "Paracetomol",
-                "corrected_name": "Paracetamol",
-                "generic_name": ["Paracetamol"],
-                "brand_names": ["Tylenol", "Panadol"],
-                "is_correct": False,
-                "is_generic": True,
-                "notes": "Common misspelling corrected."
-            },
-            {
-                "input_name": "Amoxicillin + Clavulanate",
-                "corrected_name": "Amoxicillin + Clavulanate",
-                "generic_name": ["Amoxicillin", "Clavulanic Acid"],
-                "brand_names": ["Augmentin", "Clavamox"],
-                "is_correct": True,
-                "is_generic": True,
-                "notes": "Combination drug verified."
-            },
-            {
-                "input_name": "Sertraline",
-                "corrected_name": "Sertraline",
-                "generic_name": ["Sertraline"],
-                "brand_names": ["Zoloft"],
-                "is_correct": True,
-                "is_generic": True,
-                "notes": "No spelling errors detected."
-            },
-            {
-                "input_name": "Enzoflam",
-                "corrected_name": "Enzoflam",
-                "generic_name": ["Diclofenac", "Paracetamol", "Serratiopeptidase"],
-                "brand_names": ["Enzoflam MR", "Enzoflam SP", "Enzoflam CT", "Enzoflam P", "Enzoflam Gel"],
-                "is_correct": True,
-                "is_generic": False,
-                "notes": "Brand name verified. It's a combination drug."
-            },
-            {
-                "input_name": "Advilv",
-                "corrected_name": "Advil",
-                "generic_name": ["Ibuprofen"],
-                "brand_names": ["Advil", "Motrin", "Nurofen"],
-                "is_correct": False,
-                "is_generic": False,
-                "notes": "Likely intended to be 'Advil'."
-            },
-            {
-                "input_name": "Xytrnex",
-                "corrected_name": "Unknown",
-                "generic_name": [],
-                "brand_names": [],
-                "is_correct": False,
-                "is_generic": False,
-                "notes": "Unable to confidently determine the intended medicine."
-            }
-        ]
-    )
-    
-    return medication_data, spell_check_data
-
-def send_order_via_whatsapp(medications, pharmacy_number):
-    """
-    Send medication list to a pharmacy via WhatsApp.
-    
-    Args:
-        medications: List of medication dictionaries
-        pharmacy_number: WhatsApp number of the pharmacy
-        
-    Returns:
-        str: The formatted message sent to WhatsApp
-    """
-    # Format message with medication details
-    message = "Hello, I want to order the following medicines:\n\n"
-    
-    for med in medications:
-        med_line = f"• {med['Medication Name']} {med['Dosage']} - Qty: {med['Quantity']}"
-        message += med_line + "\n"
-    
-    # Encode message for URL
-    encoded_message = quote(message)
-    
-    # Generate WhatsApp Web/Mobile link
-    whatsapp_url = f"https://wa.me/{pharmacy_number}?text={encoded_message}"
-    
-    # Open WhatsApp with the pre-filled message
-    webbrowser.open(whatsapp_url)
-    
-    return message
+# Function to load Lottie animation files
+def load_lottie_file(filepath):
+    with open(filepath, "r") as f:
+        return json.load(f)
 
 # Initialize session state variables if they don't exist
 if 'extracted_text' not in st.session_state:
@@ -225,51 +43,107 @@ if 'final_data' not in st.session_state:
     st.session_state.final_data = None
 if 'use_dummy_data' not in st.session_state:
     st.session_state.use_dummy_data = False
+if 'whatsapp_message' not in st.session_state:
+    st.session_state.whatsapp_message = ""
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = "Prescription"
 
-st.title("Pharmacist's Assistant")
-logger.info("Application started")
-st.write("Upload a prescription image, and we'll extract and verify the medicines for you.")
+# Set page configuration
+st.set_page_config(
+    page_title="Pharmacist's Assistant",
+    page_icon="💊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Add a checkbox to toggle between real processing and dummy data
-use_dummy = st.checkbox("Use dummy data for testing", value=st.session_state.use_dummy_data)
-if use_dummy != st.session_state.use_dummy_data:
-    st.session_state.use_dummy_data = use_dummy
-    st.session_state.has_processed = False
-    st.session_state.final_data = None
-
-uploaded_file = st.file_uploader("Upload Prescription Image", type=["png", "jpg", "jpeg"])
-
-if uploaded_file or st.session_state.use_dummy_data:
-    if uploaded_file and not st.session_state.use_dummy_data:
+# ===== SIDEBAR =====
+with st.sidebar:
+    st.title("💊 Pharmacist's Assistant")
+    st.markdown("---")
+    
+    st.subheader("Configuration")
+    # Add a checkbox to toggle between real processing and dummy data
+    use_dummy = st.checkbox("Use dummy data for testing", value=st.session_state.use_dummy_data)
+    if use_dummy != st.session_state.use_dummy_data:
+        st.session_state.use_dummy_data = use_dummy
+        st.session_state.has_processed = False
+        st.session_state.final_data = None
+    
+    st.markdown("---")
+    
+    # File uploader in sidebar
+    st.subheader("Upload Prescription")
+    uploaded_file = st.file_uploader("Choose an image file", type=["png", "jpg", "jpeg"])
+    
+    if uploaded_file:
         logger.info("File uploaded: %s", uploaded_file.name)
+        # Show a small preview in the sidebar
         image = PIL.Image.open(uploaded_file)
         st.image(image, caption="Uploaded Image", use_container_width=True)
     
-    # Only process the image if it hasn't been processed yet
-    if not st.session_state.has_processed:
-        if st.session_state.use_dummy_data:
-            logger.info("Using dummy data for testing")
+    st.markdown("---")
+    
+    # Process button
+    process_button = st.button("Process Prescription", type="primary", use_container_width=True)
+    
+    # App information
+    st.markdown("---")
+    st.markdown("### About")
+    st.markdown("This app helps pharmacists extract and verify medication information from prescription images.")
+    st.markdown("© 2023 Pharmacist's Assistant")
+
+# ===== MAIN CONTENT =====
+# Main area title
+st.title("Prescription Analysis")
+st.markdown("Upload a prescription image in the sidebar, and we'll extract and verify the medicines for you.")
+
+# Process the prescription if button is clicked or if using dummy data
+if process_button or (st.session_state.use_dummy_data and not st.session_state.has_processed):
+    if st.session_state.use_dummy_data:
+        logger.info("Using dummy data for testing")
+        with st.spinner("Generating dummy data..."):
             st.session_state.final_data, st.session_state.spell_check_data = generate_dummy_data()
-        else:
-            logger.info("Processing image")
-            uploaded_file.seek(0)
+    elif uploaded_file:
+        logger.info("Processing image")
+        uploaded_file.seek(0)
+        
+        with st.spinner("Extracting and verifying medicines..."):
+            st.session_state.final_data, st.session_state.spell_check_data = process_prescription_with_spell_check(uploaded_file)
+            logger.info("Image processing complete")
+    
+    st.session_state.has_processed = True
+    
+    # If we have data, update the WhatsApp message
+    if st.session_state.final_data and hasattr(st.session_state.final_data, 'medications'):
+        # Create a list to store the flattened medication data
+        table_data = []
+        
+        for med in st.session_state.final_data.medications:
+            # Flatten the nested structure for tabular display
+            med_dict = {
+                "Medication Name": med.medication_name,
+                "Dosage": med.dosage,
+                "Quantity": med.quantity,
+                "How to Take": med.instructions.how,
+                "How Much": med.instructions.how_much,
+                "When to Take": med.instructions.when
+            }
+            table_data.append(med_dict)
+        
+        # Initialize WhatsApp message
+        st.session_state.whatsapp_message = format_whatsapp_message(table_data)
+
+# Create tabs for different sections
+if st.session_state.has_processed:
+    tabs = st.tabs(["Prescription", "Spell Check", "Order"])
+    
+    # === TAB 1: PRESCRIPTION DATA ===
+    with tabs[0]:
+        st.header("Analyzed Prescription")
+        
+        if st.session_state.final_data and hasattr(st.session_state.final_data, 'medications'):
+            data = st.session_state.final_data
             
-            with st.spinner("Extracting and verifying medicines..."):
-                st.session_state.final_data, st.session_state.spell_check_data = process_prescription_with_spell_check(uploaded_file)
-                logger.info("Image processing complete")
-        
-        st.session_state.has_processed = True
-    
-    
-    st.subheader("Analyzed Prescription:")
-    
-    # Display structured data in a more user-friendly format
-    if st.session_state.final_data:
-        logger.info("Displaying analyzed prescription data")
-        data = st.session_state.final_data
-        
-        # Create a table to display medication information
-        if hasattr(data, 'medications') and data.medications:
             # Create a list to store the flattened medication data
             table_data = []
             
@@ -289,6 +163,9 @@ if uploaded_file or st.session_state.use_dummy_data:
             df = pd.DataFrame(table_data)
             
             # Display the table with editing capabilities
+            st.subheader("Medication Information")
+            st.markdown("Review and edit the extracted medication information below:")
+            
             edited_df = st.data_editor(
                 df,
                 key="medication_editor",
@@ -306,40 +183,6 @@ if uploaded_file or st.session_state.use_dummy_data:
             
             # Store the edited dataframe in session state
             st.session_state.edited_data = edited_df
-            
-            # Add WhatsApp order button
-            pharmacy_number = st.text_input("Pharmacy WhatsApp Number ", value="")
-            
-            # Format the message for preview
-            if "whatsapp_message" not in st.session_state:
-                # Initialize with default message
-                medications_to_order = edited_df.to_dict('records')
-                message = "Hello, I want to order the following medicines:\n\n"
-                for med in medications_to_order:
-                    message += f"-- {med['Medication Name']} {med['Dosage']} - Qty: {med['Quantity']}\n"
-                st.session_state.whatsapp_message = message
-            
-            # Show message preview with editing capability
-            st.subheader("Message Preview")
-            st.session_state.whatsapp_message = st.text_area(
-                "Edit your message before sending:",
-                value=st.session_state.whatsapp_message,
-                height=200
-            )
-            
-            # Send button
-            if st.button("Send Order via WhatsApp"):
-                # Encode message for URL
-                encoded_message = quote(st.session_state.whatsapp_message)
-                
-                # Generate WhatsApp Web/Mobile link
-                whatsapp_url = f"https://wa.me/{pharmacy_number}?text={encoded_message}"
-                
-                # Open WhatsApp with the pre-filled message
-                webbrowser.open(whatsapp_url)
-                
-                # Show confirmation
-                st.success("Opening WhatsApp with your order!")
             
             # Show information about edits
             with st.expander("View Edit Information"):
@@ -363,12 +206,13 @@ if uploaded_file or st.session_state.use_dummy_data:
         else:
             st.warning("No medication data found in the processed results.")
     
-    # Display spell check data
-    if st.session_state.spell_check_data:
-        st.subheader("Spell Check Results:")
-        spell_check_data = st.session_state.spell_check_data
+    # === TAB 2: SPELL CHECK RESULTS ===
+    with tabs[1]:
+        st.header("Spell Check Results")
         
-        if hasattr(spell_check_data, 'drugs') and spell_check_data.drugs:
+        if st.session_state.spell_check_data and hasattr(st.session_state.spell_check_data, 'drugs'):
+            spell_check_data = st.session_state.spell_check_data
+            
             # Create a list to store the spell check data
             spell_check_table = []
             
@@ -389,6 +233,7 @@ if uploaded_file or st.session_state.use_dummy_data:
             spell_check_df = pd.DataFrame(spell_check_table)
             
             # Display the table
+            st.markdown("Review the spell check results for medication names:")
             st.dataframe(
                 spell_check_df,
                 use_container_width=True,
@@ -408,4 +253,89 @@ if uploaded_file or st.session_state.use_dummy_data:
                 st.json(json.loads(spell_check_data.json()))
         else:
             st.warning("No spell check data found in the processed results.")
+    
+    # === TAB 3: ORDER VIA WHATSAPP ===
+    with tabs[2]:
+        st.header("Send Order to Pharmacy")
+        
+        if st.session_state.edited_data is not None:
+            # Pharmacy WhatsApp number input
+            st.subheader("Pharmacy Information")
+            pharmacy_number = st.text_input("Pharmacy WhatsApp Number", placeholder="+1234567890")
+            
+            # Message preview and editing
+            st.subheader("Message Preview")
+            st.markdown("Edit your message before sending:")
+            
+            st.session_state.whatsapp_message = st.text_area(
+                "Message content",
+                value=st.session_state.whatsapp_message,
+                height=200,
+                label_visibility="collapsed"
+            )
+            
+            # WhatsApp button
+            st.subheader("Send Order")
+            if pharmacy_number:
+                medications_to_order = st.session_state.edited_data.to_dict('records')
+                whatsapp_url = send_order_via_whatsapp(
+                    medications_to_order, 
+                    pharmacy_number, 
+                    custom_message=st.session_state.whatsapp_message
+                )
+                
+                # Create a custom HTML button with JavaScript to open in a new tab
+                whatsapp_button_html = f"""
+                <a href="{whatsapp_url}" target="_blank" style="text-decoration: none;">
+                    <button style="
+                        background-color: #25D366; 
+                        color: white; 
+                        padding: 10px 24px; 
+                        border: none; 
+                        border-radius: 4px; 
+                        cursor: pointer;
+                        font-weight: bold;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin: 10px 0;
+                    ">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+                        </svg>
+                        Send Order via WhatsApp
+                    </button>
+                </a>
+                """
+                components.html(whatsapp_button_html, height=50)
+                st.markdown("*Click the button above to open WhatsApp with your order*")
+            else:
+                st.error("Please enter a pharmacy WhatsApp number to send the order.")
+        else:
+            st.warning("Please process a prescription first to generate medication data.")
+else:
+    # Show instructions when no prescription has been processed
+    st.info("👈 Please upload a prescription image in the sidebar and click 'Process Prescription' to begin.")
+    
+    # Placeholder for demonstration
+    st.markdown("### How it works")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("#### 1. Upload")
+        st.markdown("Upload a prescription image through the sidebar")
+        lottie_upload = load_lottie_file("/home/ciaokitty/pharma-autobot/public/Animation - Upload.json")
+        st_lottie(lottie_upload, height=150, key="upload_animation")
+    
+    with col2:
+        st.markdown("#### 2. Process")
+        st.markdown("Our AI extracts and verifies medication information")
+        lottie_upload = load_lottie_file("/home/ciaokitty/pharma-autobot/public/Animation - Process.json")
+        st_lottie(lottie_upload, height=150, key="process_animation")
+    
+    with col3:
+        st.markdown("#### 3. Order")
+        st.markdown("Send the verified order to your pharmacy via WhatsApp")
+        lottie_upload = load_lottie_file("/home/ciaokitty/pharma-autobot/public/Animation - Order.json")
+        st_lottie(lottie_upload, height=150, key="order_animation")
 
