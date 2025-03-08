@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Pharmacist's Assistant</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        .tab-active {
+            border-bottom: 2px solid #4e8cff;
+            font-weight: bold;
+            background-color: #f0f2f6;
+        }
+        
+        .whatsapp-button {
+            background-color: #25D366;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+            text-decoration: none;
+        }
+        
+        .whatsapp-button:hover {
+            background-color: #128C7E;
+        }
+    </style>
+</head>
+<body class="bg-gray-50" x-data="app">
+    <!-- Error Message -->
+    <template x-if="error">
+        <div class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span x-text="error"></span>
+            <button @click="error = null" class="absolute top-0 right-0 px-4 py-3">
+                <span class="sr-only">Close</span>
+                <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
+    </template>
+
+    <!-- Loading State -->
+    <template x-if="isProcessing">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-8 rounded-lg shadow-xl">
+                <div class="flex items-center space-x-4">
+                    <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-lg font-semibold">Processing prescription...</span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                💊 Pharmacist's Assistant
+            </h1>
+            <hr class="my-4">
+            
+            <div class="space-y-6">
+                <!-- Configuration -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-2">Configuration</h2>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" x-model="useDummyData" class="rounded">
+                        <span>Use dummy data for testing</span>
+                    </label>
+                </div>
+                
+                <hr>
+                
+                <!-- File Upload -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-2">Upload Prescription</h2>
+                    <input type="file" 
+                           accept="image/*"
+                           @change="handleFileUpload($event)"
+                           class="w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-blue-50 file:text-blue-700
+                                  hover:file:bg-blue-100">
+                    
+                    <!-- Image Preview -->
+                    <template x-if="imagePreview">
+                        <div class="mt-4">
+                            <img :src="imagePreview" 
+                                 alt="Prescription Preview"
+                                 class="w-full rounded-lg shadow">
+                        </div>
+                    </template>
+                </div>
+                
+                <hr>
+                
+                <!-- Process Button -->
+                <button @click="processPrescription"
+                        :disabled="isProcessing || (!selectedFile && !useDummyData)"
+                        :class="{'opacity-50 cursor-not-allowed': isProcessing || (!selectedFile && !useDummyData)}"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg
+                               hover:bg-blue-700 focus:outline-none focus:ring-2
+                               focus:ring-blue-500 focus:ring-offset-2">
+                    <span x-text="isProcessing ? 'Processing...' : 'Process Prescription'"></span>
+                </button>
+                
+                <hr>
+                
+                <!-- About -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-2">About</h2>
+                    <p class="text-sm text-gray-600">
+                        This app helps pharmacists extract and verify medication information from prescription images.
+                    </p>
+                    <p class="text-sm text-gray-500 mt-2">
+                        © 2023 Pharmacist's Assistant
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Alpine.js State and Methods -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('app', () => ({
+                useDummyData: false,
+                imagePreview: null,
+                selectedFile: null,
+                sessionId: null,
+                isProcessing: false,
+                error: null,
+                
+                async handleFileUpload(event) {
+                    try {
+                        const file = event.target.files[0];
+                        if (file) {
+                            this.selectedFile = file;
+                            this.imagePreview = URL.createObjectURL(file);
+                            console.log('File selected:', file.name);
+                        }
+                    } catch (err) {
+                        console.error('Error handling file upload:', err);
+                        this.error = 'Failed to handle file upload';
+                    }
+                },
+                
+                async processPrescription() {
+                    try {
+                        if (!this.selectedFile && !this.useDummyData) {
+                            this.error = 'Please select a file or use dummy data';
+                            return;
+                        }
+
+                        this.isProcessing = true;
+                        this.error = null;
+                        console.log('Processing prescription...');
+                        
+                        const formData = new FormData();
+                        formData.append('use_dummy', this.useDummyData);
+                        if (this.selectedFile) {
+                            formData.append('file', this.selectedFile);
+                        }
+                        
+                        console.log('Sending request to /upload...');
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        console.log('Response:', data);
+                        
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Failed to process prescription');
+                        }
+                        
+                        this.sessionId = data.session_id;
+                        console.log('Redirecting to:', `/prescription/${data.session_id}`);
+                        window.location.href = `/prescription/${data.session_id}`;
+                    } catch (err) {
+                        console.error('Error processing prescription:', err);
+                        this.error = err.message;
+                    } finally {
+                        this.isProcessing = false;
+                    }
+                }
+            }));
+        });
+    </script>
+</body>
+</html> 

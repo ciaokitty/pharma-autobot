@@ -5,10 +5,9 @@ from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import json
 from dotenv import load_dotenv
 import os
-from prompts import *
-from schema import MedicationResponse, SpellCheckResponse
-
-from exceptions import *
+from .prompts import *
+from .schema import MedicationResponse, SpellCheckResponse
+from .exceptions import *
 import logging
 
 # Configure module-specific logger
@@ -49,19 +48,26 @@ def extract_text_from_image(image) -> MedicationResponse:
     Sends image to Google Gemini API and retrieves structured medication data.
     
     Args:
-        image: The prescription image file
+        image: The prescription image file (can be bytes or file-like object)
         
     Returns:
         MedicationResponse: A structured response containing medication information
     """
     logger.info("Extracting text from image")
     client = genai.Client(api_key=api_key_rotator.get_next_key())
-    image_bytes = image.read()
+    
+    # Handle both bytes and file-like objects
+    if isinstance(image, bytes):
+        image_bytes = image
+        mime_type = "image/jpeg"  # Default to JPEG if unknown
+    else:
+        image_bytes = image.read()
+        mime_type = getattr(image, 'content_type', None) or getattr(image, 'type', 'image/jpeg')
     
     # Create Gemini-compatible format
     b64_image = types.Part.from_bytes(
         data=image_bytes,
-        mime_type=image.type
+        mime_type=mime_type
     )
     
     google_search_tool = Tool(

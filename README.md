@@ -4,9 +4,9 @@ Pharma-Autobot is a web application designed to help pharmacists and patients pr
 
 ### **Design Approach and Philosophy**  
 
-Training a custom model for Handwritten Text Recognition (HTR) didn’t seem practical after testing some of the highest-ranked OCR models from [Papers with Code](https://paperswithcode.com/task/handwritten-text-recognition/). Even with well-written prescriptions, they struggled to produce meaningful results.  
+Training a custom model for Handwritten Text Recognition (HTR) didn't seem practical after testing some of the highest-ranked OCR models from [Papers with Code](https://paperswithcode.com/task/handwritten-text-recognition/). Even with well-written prescriptions, they struggled to produce meaningful results.  
 
-Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas.edu/~eunsol/courses/data/bitter_lesson.pdf), it made more sense to leverage existing large-scale models rather than build something from scratch. Google Gemini’s vision models performed remarkably well at extracting text from handwritten notes, making them the best fit for this project. Instead of reinventing the wheel, the focus shifted to integrating and fine-tuning something that gets the job done efficiently.
+Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas.edu/~eunsol/courses/data/bitter_lesson.pdf), it made more sense to leverage existing large-scale models rather than build something from scratch. Google Gemini's vision models performed remarkably well at extracting text from handwritten notes, making them the best fit for this project. Instead of reinventing the wheel, the focus shifted to integrating and fine-tuning something that gets the job done efficiently.
 
 ## Features
 
@@ -79,27 +79,39 @@ Taking inspiration from [The Bitter Lesson by Rich Sutton](https://www.cs.utexas
 
 ### Running the Application
 
-Start the Streamlit application locally on your browser by running this:
+You can run the application in two different ways:
+
+#### 1. Streamlit Version (Original)
+Start the Streamlit application locally on your browser:
 ```bash
 streamlit run src/app.py
 ```
 
-## Usage
+#### 2. FastHTML Version (Alternative)
+Start the FastAPI application with Uvicorn:
+```bash
+uvicorn src.app_alt:app --reload
+```
 
-1. Upload a prescription image or use the "Use dummy data for testing" option
-2. The application will extract medication information and verify drug names
-3. Review and edit the extracted information as needed
-4. Enter a pharmacy's WhatsApp number to send the order
-5. Customize the message if needed and click "Send Order via WhatsApp"
+The FastHTML version provides a more traditional web application experience with:
+- Faster page loads
+- Better performance for large datasets
+- More customizable UI
+- Real-time updates without full page reloads
+
+Both versions provide the same core functionality, so you can choose the one that best suits your needs.
 
 ## Project Structure
 
 The project structure includes:
 - `src/app.py`: Main Streamlit application
+- `src/app_alt.py`: Alternative FastHTML application
 - `src/ocr.py`: Prescription OCR and text extraction functionality
 - `src/schema.py`: Data models for medication information
 - `src/prompts.py`: Prompts for the Gemini AI model
 - `src/exceptions.py`: Custom exception handling
+- `templates/`: HTML templates for the FastHTML version
+- `public/`: Static files and assets
 
 ## Screenshots to show working of this application:
 

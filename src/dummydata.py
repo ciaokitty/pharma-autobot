@@ -1,4 +1,4 @@
-from schema import MedicationResponse, Medication, Instructions, SpellCheckResponse
+from .schema import MedicationResponse, Medication, Instructions, SpellCheckResponse
 
 def generate_dummy_data():
     """
