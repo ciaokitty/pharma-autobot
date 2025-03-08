@@ -46,7 +46,7 @@ if 'use_dummy_data' not in st.session_state:
 if 'whatsapp_message' not in st.session_state:
     st.session_state.whatsapp_message = ""
 if 'active_tab' not in st.session_state:
-    st.session_state.active_tab = "Prescription"
+    st.session_state.active_tab = 0  # 0 for Prescription, 1 for Spell Check, 2 for Order
 
 # Set page configuration
 st.set_page_config(
@@ -135,10 +135,47 @@ if process_button or (st.session_state.use_dummy_data and not st.session_state.h
 
 # Create tabs for different sections
 if st.session_state.has_processed:
-    tabs = st.tabs(["Prescription", "Spell Check", "Order"])
+    # Use radio buttons to simulate tabs with better control
+    tab_names = ["Prescription", "Spell Check", "Order"]
+    
+    # Create a horizontal container for the tab-like radio buttons
+    tab_cols = st.columns(len(tab_names))
+    
+    # Style for the selected and unselected tabs
+    selected_style = """
+    <style>
+    div[data-testid="stHorizontalBlock"] > div:nth-child({}) button {{
+        background-color: #f0f2f6;
+        border-bottom: 2px solid #4e8cff;
+        font-weight: bold;
+    }}
+    </style>
+    """
+    
+    # Function to handle tab selection
+    def select_tab(tab_index):
+        st.session_state.active_tab = tab_index
+    
+    # Create the tab-like radio buttons
+    for i, (col, name) in enumerate(zip(tab_cols, tab_names)):
+        with col:
+            if st.button(
+                name, 
+                key=f"tab_{i}",
+                use_container_width=True,
+                on_click=select_tab,
+                args=(i,)
+            ):
+                pass
+    
+    # Display the selected style for the active tab
+    st.markdown(selected_style.format(st.session_state.active_tab + 1), unsafe_allow_html=True)
+    
+    # Display content based on the active tab
+    active_tab = st.session_state.active_tab
     
     # === TAB 1: PRESCRIPTION DATA ===
-    with tabs[0]:
+    if active_tab == 0:
         st.header("Analyzed Prescription")
         
         if st.session_state.final_data and hasattr(st.session_state.final_data, 'medications'):
@@ -206,8 +243,8 @@ if st.session_state.has_processed:
         else:
             st.warning("No medication data found in the processed results.")
     
-    # === TAB 2: SPELL CHECK RESULTS ===
-    with tabs[1]:
+    # === TAB 2: SPELL CHECK ===
+    elif active_tab == 1:
         st.header("Spell Check Results")
         
         if st.session_state.spell_check_data and hasattr(st.session_state.spell_check_data, 'drugs'):
@@ -255,13 +292,16 @@ if st.session_state.has_processed:
             st.warning("No spell check data found in the processed results.")
     
     # === TAB 3: ORDER VIA WHATSAPP ===
-    with tabs[2]:
+    elif active_tab == 2:
         st.header("Send Order to Pharmacy")
         
         if st.session_state.edited_data is not None:
             # Pharmacy WhatsApp number input
             st.subheader("Pharmacy Information")
-            pharmacy_number = st.text_input("Pharmacy WhatsApp Number", placeholder="+1234567890")
+            pharmacy_number = st.text_input(
+                "Pharmacy WhatsApp Number", 
+                placeholder="+1234567890"
+            )
             
             # Message preview and editing
             st.subheader("Message Preview")
