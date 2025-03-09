@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
-    x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
+<html lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', sidebarWidth: parseInt(localStorage.getItem('sidebarWidth')) || 256 }"
+    x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val));
+            $watch('sidebarWidth', val => localStorage.setItem('sidebarWidth', val))" 
+    :class="{ 'dark': darkMode }">
 
 <head>
     <meta charset="UTF-8">
@@ -25,6 +27,22 @@
     <style>
         [x-cloak] {
             display: none !important;
+        }
+
+        .resize-handle {
+            position: absolute;
+            right: -3px;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            cursor: ew-resize;
+            background-color: transparent;
+            transition: background-color 0.2s;
+        }
+
+        .resize-handle:hover,
+        .resize-handle.dragging {
+            background-color: rgba(59, 130, 246, 0.5);
         }
 
         /* Custom Scrollbar Styles */
@@ -92,122 +110,166 @@
     </style>
 </head>
 
-<body class="bg-gray-50 dark:bg-gray-900 dark:text-white transition-colors duration-200" x-data="app">
-    <!-- Error Message -->
-    <template x-if="error">
-        <div class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-            role="alert">
-            <span x-text="error"></span>
-            <button @click="error = null" class="absolute top-0 right-0 px-4 py-3">
-                <span class="sr-only">Close</span>
-                <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clip-rule="evenodd" />
-                </svg>
-            </button>
-        </div>
-    </template>
-
-    <!-- Loading State -->
-    <template x-if="isProcessing">
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div class="bg-white p-8 rounded-lg shadow-xl">
-                <div class="flex items-center space-x-4">
-                    <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span class="text-lg font-semibold">Processing prescription...</span>
-                </div>
-            </div>
-        </div>
-    </template>
-
-    <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg">
-        <div class="p-6">
-            <h1 class="text-2xl font-bold flex items-center gap-2 dark:text-white">
-                💊 Pharmacist's Assistant
-            </h1>
-            <hr class="my-4 border-gray-200 dark:border-gray-700">
-
-            <div class="space-y-6">
-                <!-- Theme Toggle -->
-                <div>
-                    <h2 class="text-lg font-semibold mb-2 dark:text-white">Theme</h2>
-                    <button @click="darkMode = !darkMode"
-                        class="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
-                        <span x-text="darkMode ? 'Dark Mode' : 'Light Mode'"></span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'hidden': darkMode }"
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'hidden': !darkMode }"
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Configuration -->
-                <div>
-                    <h2 class="text-lg font-semibold mb-2 dark:text-white">Configuration</h2>
-                    <label class="flex items-center space-x-2 dark:text-gray-300">
-                        <input type="checkbox" x-model="useDummyData"
-                            class="rounded dark:bg-gray-800 dark:border-gray-600">
-                        <span>Use dummy data for testing</span>
-                    </label>
-                </div>
-
-                <hr class="border-gray-200 dark:border-gray-700">
-
-                <!-- File Upload -->
-                <div>
-                    <h2 class="text-lg font-semibold mb-2">Upload Prescription</h2>
-                    <input type="file" accept="image/*" @change="handleFileUpload($event)" class="w-full text-sm text-gray-500 dark:text-gray-400
-                                  file:mr-4 file:py-2 file:px-4
-                                  file:rounded-full file:border-0
-                                  file:text-sm file:font-semibold
-                                  file:bg-blue-50 dark:file:bg-gray-800 file:text-blue-700 dark:file:text-blue-400
-                                  hover:file:bg-blue-100 dark:hover:file:bg-gray-700">
-
-                    <!-- Image Preview -->
-                    <template x-if="imagePreview">
-                        <div class="mt-4">
-                            <img :src="imagePreview" alt="Prescription Preview" class="w-full rounded-lg shadow">
-                        </div>
-                    </template>
-                </div>
-
-                <hr class="my-4 border-gray-200 dark:border-gray-700">
-
-                <!-- Process Button -->
-                <button @click="processPrescription" :disabled="isProcessing || (!selectedFile && !useDummyData)"
-                    :class="{'opacity-50 cursor-not-allowed': isProcessing || (!selectedFile && !useDummyData)}" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg
-                               hover:bg-blue-700 focus:outline-none focus:ring-2
-                               focus:ring-blue-500 focus:ring-offset-2">
-                    <span x-text="isProcessing ? 'Processing...' : 'Process Prescription'"></span>
+<body class="bg-gray-50 dark:bg-gray-900 dark:text-white transition-colors duration-200">
+    <div x-data="{ 
+        ...app(),
+        isDragging: false,
+        startX: 0,
+        startWidth: 0,
+        sidebarWidth: parseInt(localStorage.getItem('sidebarWidth')) || 256,
+        
+        initResize(e) {
+            this.isDragging = true;
+            this.startX = e.pageX;
+            this.startWidth = this.sidebarWidth;
+            
+            const handleResize = (e) => {
+                if (!this.isDragging) return;
+                const diff = e.pageX - this.startX;
+                const newWidth = Math.max(200, Math.min(800, this.startWidth + diff));
+                this.sidebarWidth = newWidth;
+                localStorage.setItem('sidebarWidth', newWidth);
+            };
+            
+            const stopResize = () => {
+                this.isDragging = false;
+                document.removeEventListener('mousemove', handleResize);
+                document.removeEventListener('mouseup', stopResize);
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            };
+            
+            document.addEventListener('mousemove', handleResize);
+            document.addEventListener('mouseup', stopResize);
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+        }
+    }">
+        <!-- Error Message -->
+        <template x-if="error">
+            <div class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                role="alert">
+                <span x-text="error"></span>
+                <button @click="error = null" class="absolute top-0 right-0 px-4 py-3">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
                 </button>
+            </div>
+        </template>
 
-                <hr class="my-4 border-gray-200 dark:border-gray-700">
-
-                <!-- About -->
-                <div>
-                    <h2 class="text-lg font-semibold mb-2 dark:text-white">About</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        This app helps pharmacists extract and verify medication information from prescription images.
-                    </p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        © 2023 Pharmacist's Assistant
-                    </p>
+        <!-- Loading State -->
+        <template x-if="isProcessing">
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="bg-white p-8 rounded-lg shadow-xl">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-lg font-semibold">Processing prescription...</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </template>
 
-    <!-- Main Content -->
-    <div class="ml-64 p-8">
-        {% block content %}{% endblock %}
+        <!-- Sidebar -->
+        <div class="fixed inset-y-0 left-0 bg-white dark:bg-gray-800 shadow-lg flex flex-col"
+            :style="`width: ${sidebarWidth}px`">
+            <!-- Scrollable container -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="p-6">
+                    <h1 class="text-2xl font-bold flex items-center gap-2 dark:text-white">
+                        💊 Pharmacist's Assistant
+                    </h1>
+                    <hr class="my-4 border-gray-200 dark:border-gray-700">
+
+                    <div class="space-y-6">
+                        <!-- Theme Toggle -->
+                        <div>
+                            <h2 class="text-lg font-semibold mb-2 dark:text-white">Theme</h2>
+                            <button @click="darkMode = !darkMode"
+                                class="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
+                                <span x-text="darkMode ? 'Dark Mode' : 'Light Mode'"></span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'hidden': darkMode }"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'hidden': !darkMode }"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Configuration -->
+                        <div>
+                            <h2 class="text-lg font-semibold mb-2 dark:text-white">Configuration</h2>
+                            <label class="flex items-center space-x-2 dark:text-gray-300">
+                                <input type="checkbox" x-model="useDummyData"
+                                    class="rounded dark:bg-gray-800 dark:border-gray-600">
+                                <span>Use dummy data for testing</span>
+                            </label>
+                        </div>
+
+                        <hr class="border-gray-200 dark:border-gray-700">
+
+                        <!-- File Upload -->
+                        <div>
+                            <h2 class="text-lg font-semibold mb-2">Upload Prescription</h2>
+                            <input type="file" accept="image/*" @change="handleFileUpload($event)" class="w-full text-sm text-gray-500 dark:text-gray-400
+                                          file:mr-4 file:py-2 file:px-4
+                                          file:rounded-full file:border-0
+                                          file:text-sm file:font-semibold
+                                          file:bg-blue-50 dark:file:bg-gray-800 file:text-blue-700 dark:file:text-blue-400
+                                          hover:file:bg-blue-100 dark:hover:file:bg-gray-700">
+
+                            <!-- Image Preview -->
+                            <template x-if="imagePreview">
+                                <div class="mt-4">
+                                    <img :src="imagePreview" alt="Prescription Preview" class="w-full rounded-lg shadow">
+                                </div>
+                            </template>
+                        </div>
+
+                        <hr class="my-4 border-gray-200 dark:border-gray-700">
+
+                        <!-- Process Button -->
+                        <button @click="processPrescription" :disabled="isProcessing || (!selectedFile && !useDummyData)"
+                            :class="{'opacity-50 cursor-not-allowed': isProcessing || (!selectedFile && !useDummyData)}" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg
+                                       hover:bg-blue-700 focus:outline-none focus:ring-2
+                                       focus:ring-blue-500 focus:ring-offset-2">
+                            <span x-text="isProcessing ? 'Processing...' : 'Process Prescription'"></span>
+                        </button>
+
+                        <hr class="my-4 border-gray-200 dark:border-gray-700">
+
+                        <!-- About -->
+                        <div>
+                            <h2 class="text-lg font-semibold mb-2 dark:text-white">About</h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                This app helps pharmacists extract and verify medication information from prescription images.
+                            </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                © 2023 Pharmacist's Assistant
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Resize Handle -->
+            <div class="resize-handle" 
+                @mousedown="initResize"
+                :class="{ 'dragging': isDragging }">
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div :style="`margin-left: ${sidebarWidth}px`" class="p-8">
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
     <!-- Alpine.js State and Methods -->
