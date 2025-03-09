@@ -167,10 +167,13 @@
         <!-- Loading State -->
         <template x-if="isProcessing">
             <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <div class="bg-white p-8 rounded-lg shadow-xl">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span class="text-lg font-semibold">Processing prescription...</span>
+                
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-48 h-48">
+                            <lottie-player src="/static/Animation - Extraction.json" background="transparent" speed="1" loop autoplay>
+                            </lottie-player>
+                        </div>
+                        <span class="text-lg font-semibold dark:text-white">Processing prescription</span>
                     </div>
                 </div>
             </div>
@@ -246,6 +249,13 @@
                                        focus:ring-blue-500 focus:ring-offset-2">
                             <span x-text="isProcessing ? 'Processing...' : 'Process Prescription'"></span>
                         </button>
+
+                        <!-- Reset Button -->
+                        <a href="/" class="block w-full text-center bg-gray-600 text-white py-2 px-4 rounded-lg
+                                       hover:bg-gray-700 focus:outline-none focus:ring-2
+                                       focus:ring-gray-500 focus:ring-offset-2">
+                            Reset
+                        </a>
 
                         <hr class="my-4 border-gray-200 dark:border-gray-700">
 
