@@ -20,8 +20,28 @@
                 class="py-4 px-1 border-b-2 font-medium text-sm dark:text-gray-300 dark:hover:text-white">
                 Order
             </button>
+            {% if has_image %}
+            <button x-on:click="activeTab = 'image'" :class="{'tab-active': activeTab === 'image'}"
+                class="py-4 px-1 border-b-2 font-medium text-sm dark:text-gray-300 dark:hover:text-white">
+                Image
+            </button>
+            {% endif %}
         </nav>
     </div>
+
+    <!-- Image Tab -->
+    {% if has_image %}
+    <div x-show="activeTab === 'image'" x-cloak>
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 dark:text-white">Original Prescription</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">View the original prescription image below:</p>
+            <div class="flex justify-center">
+                <img src="/api/prescription-image/{{ session_id }}" alt="Prescription"
+                    class="max-w-full h-auto rounded-lg shadow-lg">
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Prescription Tab -->
     <div x-show="activeTab === 'prescription'" x-cloak>

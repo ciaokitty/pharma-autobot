@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', sidebarWidth: parseInt(localStorage.getItem('sidebarWidth')) || 256 }"
     x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val));
-            $watch('sidebarWidth', val => localStorage.setItem('sidebarWidth', val))" 
+            $watch('sidebarWidth', val => localStorage.setItem('sidebarWidth', val))"
     :class="{ 'dark': darkMode }">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Pharmacist's Assistant</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='90'>💊</text></svg>">
+
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -111,18 +114,18 @@
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 dark:text-white transition-colors duration-200">
-    <div x-data="{ 
+    <div x-data="{
         ...app(),
         isDragging: false,
         startX: 0,
         startWidth: 0,
         sidebarWidth: parseInt(localStorage.getItem('sidebarWidth')) || 256,
-        
+
         initResize(e) {
             this.isDragging = true;
             this.startX = e.pageX;
             this.startWidth = this.sidebarWidth;
-            
+
             const handleResize = (e) => {
                 if (!this.isDragging) return;
                 const diff = e.pageX - this.startX;
@@ -130,7 +133,7 @@
                 this.sidebarWidth = newWidth;
                 localStorage.setItem('sidebarWidth', newWidth);
             };
-            
+
             const stopResize = () => {
                 this.isDragging = false;
                 document.removeEventListener('mousemove', handleResize);
@@ -138,7 +141,7 @@
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
             };
-            
+
             document.addEventListener('mousemove', handleResize);
             document.addEventListener('mouseup', stopResize);
             document.body.style.cursor = 'ew-resize';
@@ -260,7 +263,7 @@
                 </div>
             </div>
             <!-- Resize Handle -->
-            <div class="resize-handle" 
+            <div class="resize-handle"
                 @mousedown="initResize"
                 :class="{ 'dragging': isDragging }">
             </div>
