@@ -1,29 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
+    x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Pharmacist's Assistant</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
     <!-- Lottie Player -->
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-    
+
     <!-- Custom CSS -->
     <style>
-        [x-cloak] { display: none !important; }
-        
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Custom Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 5px;
+            transition: background 0.2s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Dark mode scrollbar */
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+
         .tab-active {
             border-bottom: 2px solid #4e8cff;
             font-weight: bold;
             background-color: #f0f2f6;
         }
-        
+
+        .dark .tab-active {
+            background-color: #1f2937;
+        }
+
         .whatsapp-button {
             background-color: #25D366;
             color: white;
@@ -38,21 +85,25 @@
             margin: 10px 0;
             text-decoration: none;
         }
-        
+
         .whatsapp-button:hover {
             background-color: #128C7E;
         }
     </style>
 </head>
-<body class="bg-gray-50" x-data="app">
+
+<body class="bg-gray-50 dark:bg-gray-900 dark:text-white transition-colors duration-200" x-data="app">
     <!-- Error Message -->
     <template x-if="error">
-        <div class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <div class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert">
             <span x-text="error"></span>
             <button @click="error = null" class="absolute top-0 right-0 px-4 py-3">
                 <span class="sr-only">Close</span>
                 <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
                 </svg>
             </button>
         </div>
@@ -71,81 +122,94 @@
     </template>
 
     <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+    <div class="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg">
         <div class="p-6">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
+            <h1 class="text-2xl font-bold flex items-center gap-2 dark:text-white">
                 💊 Pharmacist's Assistant
             </h1>
-            <hr class="my-4">
-            
+            <hr class="my-4 border-gray-200 dark:border-gray-700">
+
             <div class="space-y-6">
+                <!-- Theme Toggle -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-2 dark:text-white">Theme</h2>
+                    <button @click="darkMode = !darkMode"
+                        class="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
+                        <span x-text="darkMode ? 'Dark Mode' : 'Light Mode'"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'hidden': darkMode }"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'hidden': !darkMode }"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </button>
+                </div>
+
                 <!-- Configuration -->
                 <div>
-                    <h2 class="text-lg font-semibold mb-2">Configuration</h2>
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" x-model="useDummyData" class="rounded">
+                    <h2 class="text-lg font-semibold mb-2 dark:text-white">Configuration</h2>
+                    <label class="flex items-center space-x-2 dark:text-gray-300">
+                        <input type="checkbox" x-model="useDummyData"
+                            class="rounded dark:bg-gray-800 dark:border-gray-600">
                         <span>Use dummy data for testing</span>
                     </label>
                 </div>
-                
-                <hr>
-                
+
+                <hr class="border-gray-200 dark:border-gray-700">
+
                 <!-- File Upload -->
                 <div>
                     <h2 class="text-lg font-semibold mb-2">Upload Prescription</h2>
-                    <input type="file" 
-                           accept="image/*"
-                           @change="handleFileUpload($event)"
-                           class="w-full text-sm text-gray-500
+                    <input type="file" accept="image/*" @change="handleFileUpload($event)" class="w-full text-sm text-gray-500 dark:text-gray-400
                                   file:mr-4 file:py-2 file:px-4
                                   file:rounded-full file:border-0
                                   file:text-sm file:font-semibold
-                                  file:bg-blue-50 file:text-blue-700
-                                  hover:file:bg-blue-100">
-                    
+                                  file:bg-blue-50 dark:file:bg-gray-800 file:text-blue-700 dark:file:text-blue-400
+                                  hover:file:bg-blue-100 dark:hover:file:bg-gray-700">
+
                     <!-- Image Preview -->
                     <template x-if="imagePreview">
                         <div class="mt-4">
-                            <img :src="imagePreview" 
-                                 alt="Prescription Preview"
-                                 class="w-full rounded-lg shadow">
+                            <img :src="imagePreview" alt="Prescription Preview" class="w-full rounded-lg shadow">
                         </div>
                     </template>
                 </div>
-                
-                <hr>
-                
+
+                <hr class="my-4 border-gray-200 dark:border-gray-700">
+
                 <!-- Process Button -->
-                <button @click="processPrescription"
-                        :disabled="isProcessing || (!selectedFile && !useDummyData)"
-                        :class="{'opacity-50 cursor-not-allowed': isProcessing || (!selectedFile && !useDummyData)}"
-                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg
+                <button @click="processPrescription" :disabled="isProcessing || (!selectedFile && !useDummyData)"
+                    :class="{'opacity-50 cursor-not-allowed': isProcessing || (!selectedFile && !useDummyData)}" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg
                                hover:bg-blue-700 focus:outline-none focus:ring-2
                                focus:ring-blue-500 focus:ring-offset-2">
                     <span x-text="isProcessing ? 'Processing...' : 'Process Prescription'"></span>
                 </button>
-                
-                <hr>
-                
+
+                <hr class="my-4 border-gray-200 dark:border-gray-700">
+
                 <!-- About -->
                 <div>
-                    <h2 class="text-lg font-semibold mb-2">About</h2>
-                    <p class="text-sm text-gray-600">
+                    <h2 class="text-lg font-semibold mb-2 dark:text-white">About</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
                         This app helps pharmacists extract and verify medication information from prescription images.
                     </p>
-                    <p class="text-sm text-gray-500 mt-2">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
                         © 2023 Pharmacist's Assistant
                     </p>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Main Content -->
     <div class="ml-64 p-8">
         {% block content %}{% endblock %}
     </div>
-    
+
     <!-- Alpine.js State and Methods -->
     <script>
         document.addEventListener('alpine:init', () => {
@@ -156,7 +220,7 @@
                 sessionId: null,
                 isProcessing: false,
                 error: null,
-                
+
                 async handleFileUpload(event) {
                     try {
                         const file = event.target.files[0];
@@ -170,7 +234,7 @@
                         this.error = 'Failed to handle file upload';
                     }
                 },
-                
+
                 async processPrescription() {
                     try {
                         if (!this.selectedFile && !this.useDummyData) {
@@ -181,26 +245,26 @@
                         this.isProcessing = true;
                         this.error = null;
                         console.log('Processing prescription...');
-                        
+
                         const formData = new FormData();
                         formData.append('use_dummy', this.useDummyData);
                         if (this.selectedFile) {
                             formData.append('file', this.selectedFile);
                         }
-                        
+
                         console.log('Sending request to /upload...');
                         const response = await fetch('/upload', {
                             method: 'POST',
                             body: formData
                         });
-                        
+
                         const data = await response.json();
                         console.log('Response:', data);
-                        
+
                         if (!response.ok) {
                             throw new Error(data.error || 'Failed to process prescription');
                         }
-                        
+
                         this.sessionId = data.session_id;
                         console.log('Redirecting to:', `/prescription/${data.session_id}`);
                         window.location.href = `/prescription/${data.session_id}`;
@@ -215,4 +279,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>

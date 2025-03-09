@@ -3,14 +3,15 @@
 {% block content %}
 <div x-data="app">
     <!-- Title -->
-    <h1 class="text-3xl font-bold mb-4">Prescription Analysis</h1>
-    <p class="text-gray-600 mb-8">
+    <h1 class="text-3xl font-bold mb-4 dark:text-white">Prescription Analysis</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-8">
         Upload a prescription image in the sidebar, and we'll extract and verify the medicines for you.
     </p>
 
     <!-- Error Message -->
     <template x-if="error">
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <div class="bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded relative mb-4"
+            role="alert">
             <span x-text="error"></span>
         </div>
     </template>
@@ -18,68 +19,59 @@
     <!-- Loading State -->
     <template x-if="isProcessing">
         <div class="flex items-center justify-center space-x-2 my-8">
-            <div class="w-4 h-4 bg-blue-600 rounded-full animate-bounce"></div>
-            <div class="w-4 h-4 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-            <div class="w-4 h-4 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-            <span class="text-blue-600 font-semibold">Processing...</span>
+            <div class="w-4 h-4 bg-blue-600 dark:bg-blue-500 rounded-full animate-bounce"></div>
+            <div class="w-4 h-4 bg-blue-600 dark:bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s">
+            </div>
+            <div class="w-4 h-4 bg-blue-600 dark:bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s">
+            </div>
+            <span class="text-blue-600 dark:text-blue-500 font-semibold">Processing...</span>
         </div>
     </template>
 
     <!-- Instructions -->
     <template x-if="!sessionId && !isProcessing">
-        <div class="bg-white rounded-lg shadow-lg p-8">
-            <h2 class="text-2xl font-bold mb-6">How it works</h2>
-            
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold mb-6 dark:text-white">How it works</h2>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Upload Step -->
                 <div class="text-center">
-                    <div class="bg-blue-50 rounded-lg w-32 h-32 flex items-center justify-center mx-auto mb-4">
-                        <lottie-player
-                            src="/static/Animation - Upload.json"
-                            background="transparent"
-                            speed="1"
-                            style="width: 100%; height: 100%"
-                            loop
-                            autoplay>
+                    <div
+                        class="bg-blue-50 dark:bg-blue-900/20 rounded-lg w-32 h-32 flex items-center justify-center mx-auto mb-4">
+                        <lottie-player src="/static/Animation - Upload.json" background="transparent" speed="1"
+                            style="width: 100%; height: 100%" loop autoplay>
                         </lottie-player>
                     </div>
-                    <h3 class="text-lg font-semibold mb-2">1. Upload</h3>
-                    <p class="text-gray-600">Upload a prescription image through the sidebar</p>
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">1. Upload</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Upload a prescription image through the sidebar</p>
                 </div>
 
                 <!-- Process Step -->
                 <div class="text-center">
-                    <div class="bg-blue-50 rounded-lg w-32 h-32 flex items-center justify-center mx-auto mb-4">
-                        <lottie-player
-                            src="/static/Animation - Process.json"
-                            background="transparent"
-                            speed="1"
-                            style="width: 100%; height: 100%"
-                            loop
-                            autoplay>
+                    <div
+                        class="bg-blue-50 dark:bg-blue-900/20 rounded-lg w-32 h-32 flex items-center justify-center mx-auto mb-4">
+                        <lottie-player src="/static/Animation - Process.json" background="transparent" speed="1"
+                            style="width: 100%; height: 100%" loop autoplay>
                         </lottie-player>
                     </div>
-                    <h3 class="text-lg font-semibold mb-2">2. Process</h3>
-                    <p class="text-gray-600">Our AI extracts and verifies medication information</p>
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">2. Process</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Our AI extracts and verifies medication information</p>
                 </div>
 
                 <!-- Order Step -->
                 <div class="text-center">
-                    <div class="bg-blue-50 rounded-lg w-32 h-32 flex items-center justify-center mx-auto mb-4">
-                        <lottie-player
-                            src="/static/Animation - Order.json"
-                            background="transparent"
-                            speed="1"
-                            style="width: 100%; height: 100%"
-                            loop
-                            autoplay>
+                    <div
+                        class="bg-blue-50 dark:bg-blue-900/20 rounded-lg w-32 h-32 flex items-center justify-center mx-auto mb-4">
+                        <lottie-player src="/static/Animation - Order.json" background="transparent" speed="1"
+                            style="width: 100%; height: 100%" loop autoplay>
                         </lottie-player>
                     </div>
-                    <h3 class="text-lg font-semibold mb-2">3. Order</h3>
-                    <p class="text-gray-600">Send the verified order to your pharmacy via WhatsApp</p>
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">3. Order</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Send the verified order to your pharmacy via WhatsApp
+                    </p>
                 </div>
             </div>
         </div>
     </template>
 </div>
-{% endblock %} 
+{% endblock %}
