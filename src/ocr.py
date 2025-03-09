@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class APIKeyRotator:
     """
     Rotates through a list of API keys to distribute API usage.
-    
+
     Attributes:
         keys: List of API keys to rotate through
         index: Current index in the rotation
@@ -29,7 +29,7 @@ class APIKeyRotator:
     def get_next_key(self) -> str:
         """
         Returns the next API key in the rotation.
-        
+
         Returns:
             str: The next API key
         """
@@ -46,16 +46,16 @@ api_key_rotator = APIKeyRotator(api_keys)
 def extract_text_from_image(image) -> MedicationResponse:
     """
     Sends image to Google Gemini API and retrieves structured medication data.
-    
+
     Args:
         image: The prescription image file (can be bytes or file-like object)
-        
+
     Returns:
         MedicationResponse: A structured response containing medication information
     """
     logger.info("Extracting text from image")
     client = genai.Client(api_key=api_key_rotator.get_next_key())
-    
+
     # Handle both bytes and file-like objects
     if isinstance(image, bytes):
         image_bytes = image
@@ -63,20 +63,20 @@ def extract_text_from_image(image) -> MedicationResponse:
     else:
         image_bytes = image.read()
         mime_type = getattr(image, 'content_type', None) or getattr(image, 'type', 'image/jpeg')
-    
+
     # Create Gemini-compatible format
     b64_image = types.Part.from_bytes(
         data=image_bytes,
         mime_type=mime_type
     )
-    
+
     google_search_tool = Tool(
         google_search = GoogleSearch()
     )
-    
+
     # First pass: Extract text from image
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.0-pro-exp-02-05",
         contents=["this", b64_image],
         config=GenerateContentConfig(
             system_instruction=ocr_system_prompt,
@@ -85,15 +85,15 @@ def extract_text_from_image(image) -> MedicationResponse:
         ),
     )
     logger.info("Text extraction response received")
-    
+
     # Prevent NoneType errors
     if not response or not hasattr(response, "text"):
         logger.warning("No text detected in image")
         return MedicationResponse(medications=[])
-    
+
     # Second pass: Structure the extracted text
     response2 = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.0-pro-exp-02-05",
         contents=[ocr_structured_output_prompt, response.text],
         config={
             'response_mime_type': 'application/json',
@@ -101,7 +101,7 @@ def extract_text_from_image(image) -> MedicationResponse:
         },
     )
     logger.info("Structured text response received")
-    
+
     # Try to parse the structured response
     try:
         if hasattr(response2, "parsed"):
@@ -117,10 +117,10 @@ def extract_text_from_image(image) -> MedicationResponse:
 def get_medicine_names(data: MedicationResponse) -> list[str]:
     """
     Extracts all medication names from a MedicationResponse object.
-    
+
     Args:
         data: MedicationResponse object containing medications
-        
+
     Returns:
         list[str]: List of medication names
     """
@@ -130,11 +130,11 @@ def get_medicine_names(data: MedicationResponse) -> list[str]:
 def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     """
     Spell checks medicine names using Google Gemini.
-    
+
     Args:
         names: List of medicine names to spell check
         client: The Google Gemini client
-        
+
     Returns:
         SpellCheckResponse: A structured response containing spell check information
     """
@@ -142,7 +142,7 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     google_search_tool = Tool(
         google_search = GoogleSearch()
     )
-    
+
     logger.info("Initiating initial spell check request")
     spell_check_response = client.models.generate_content(
         model="gemini-2.0-flash",
@@ -153,12 +153,12 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
             response_modalities=["TEXT"],
         ),
     )
-    
+
     # Get the initial response text
     if not spell_check_response or not hasattr(spell_check_response, "text"):
         logger.error("Initial spell check failed - no response text received")
         raise GeminiError("spell check failed")
-    
+
     logger.info("Initial spell check completed, requesting brand name information")
     brand_name_response = client.models.generate_content(
         model="gemini-2.0-flash",
@@ -182,7 +182,7 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
             'response_schema': SpellCheckResponse,
         },
     )
-    
+
     # Try to parse the structured response
     if hasattr(structured_response, "parsed"):
         logger.info("Successfully generated structured spell check response")
@@ -194,11 +194,11 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
 def fix_spellings(medication_response: MedicationResponse, spell_check_response: SpellCheckResponse) -> MedicationResponse:
     """
     Updates medication names with corrected spellings.
-    
+
     Args:
         medication_response: Original medication data
         spell_check_response: Spell check results
-        
+
     Returns:
         MedicationResponse: Updated medication data with corrected spellings
     """
@@ -212,17 +212,17 @@ def fix_spellings(medication_response: MedicationResponse, spell_check_response:
 def process_prescription_with_spell_check(image):
     """
     Process a prescription image and spell check all extracted medicine names.
-    
+
     Args:
         image: The prescription image file
-        
+
     Returns:
-        tuple: (MedicationResponse, SpellCheckResponse) containing the 
+        tuple: (MedicationResponse, SpellCheckResponse) containing the
                fixed medication data and spell check results
     """
     # First extract medication data from the image
     medication_data = extract_text_from_image(image)
-    
+
     # Get all medicine names
     medicine_names = get_medicine_names(medication_data)
     client = genai.Client(api_key=api_key_rotator.get_next_key())
@@ -232,8 +232,3 @@ def process_prescription_with_spell_check(image):
     fixed_medication_data = fix_spellings(medication_data, spell_check_results)
 
     return fixed_medication_data, spell_check_results
-    
-    
-
-
-
