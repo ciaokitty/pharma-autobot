@@ -6,21 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pathlib import Path
 import json
-import logging
+from loguru import logger
 import uuid
 from .ocr import *
 from .schema import MedicationResponse, Medication, Instructions, SpellCheckResponse
 import pandas as pd
 from .dummydata import generate_dummy_data
 from .whatsapp_order import send_order_via_whatsapp, format_whatsapp_message
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
-)
-logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -96,6 +88,7 @@ async def upload_file(file: UploadFile = File(None), use_dummy: bool = Form(Fals
 async def get_prescription_data(request: Request, session_id: str):
     """Get processed prescription data and render the prescription page"""
     if session_id not in session_store:
+        logger.warning(f"Session not found: {session_id}")
         return templates.TemplateResponse(
             "index.html",
             {"request": request, "error": "Session not found"}
@@ -120,10 +113,37 @@ async def get_prescription_image(session_id: str):
         media_type="image/jpeg"
     )
 
+@app.get("/reprocess-image/{session_id}")
+async def reprocess_image(session_id: str):
+    """Reprocess the prescription image for a given session"""
+    if session_id not in session_store or "image_data" not in session_store[session_id]:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    try:
+        # Get the stored image data
+        image_data = session_store[session_id]["image_data"]
+        
+        # Reprocess the image
+        final_data, spell_check_data = process_prescription_with_spell_check(image_data)
+        
+        # Update session data with new results
+        session_store[session_id].update({
+            "final_data": final_data,
+            "spell_check_data": spell_check_data,
+            "edited_data": None,
+            "whatsapp_message": ""
+        })
+        
+        return JSONResponse({"message": "Image reprocessed successfully"})
+    except Exception as e:
+        logger.error(f"Error reprocessing image: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/prescription/{session_id}")
 async def get_prescription_json(session_id: str):
     """Get processed prescription data as JSON"""
     if session_id not in session_store:
+        logger.warning(f"Session not found: {session_id}")
         return JSONResponse(
             status_code=404,
             content={"error": "Session not found"}
@@ -133,6 +153,7 @@ async def get_prescription_json(session_id: str):
     final_data = session_data["final_data"]
 
     if not final_data or not hasattr(final_data, "medications"):
+        logger.warning(f"No medication data found for session: {session_id}")
         return JSONResponse(
             status_code=404,
             content={"error": "No medication data found"}
@@ -190,6 +211,7 @@ async def get_spellcheck_json(session_id: str):
 async def update_medications(session_id: str, medications: list):
     """Update medication data"""
     if session_id not in session_store:
+        logger.warning(f"Session not found for update: {session_id}")
         return JSONResponse(
             status_code=404,
             content={"error": "Session not found"}
@@ -199,6 +221,7 @@ async def update_medications(session_id: str, medications: list):
     whatsapp_message = format_whatsapp_message(medications)
     session_store[session_id]["whatsapp_message"] = whatsapp_message
 
+    logger.info(f"Medications updated successfully for session: {session_id}")
     return JSONResponse({
         "message": "Medications updated successfully",
         "whatsapp_message": whatsapp_message

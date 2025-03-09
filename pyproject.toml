@@ -10,4 +10,5 @@ dependencies = [
     "streamlit-lottie>=0.0.5",
     "streamlit>=1.42.2",
     "fastapi[standard]>=0.115.11",
+    "loguru>=0.7.3",
 ]

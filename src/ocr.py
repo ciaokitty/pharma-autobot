@@ -8,10 +8,7 @@ import os
 from .prompts import *
 from .schema import MedicationResponse, SpellCheckResponse
 from .exceptions import *
-import logging
-
-# Configure module-specific logger
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 class APIKeyRotator:
     """
@@ -24,7 +21,7 @@ class APIKeyRotator:
     def __init__(self, keys: list[str]):
         self.keys = keys
         self.index = 0
-        logger.info("APIKeyRotator initialized with %d keys", len(keys))
+        logger.info(f"APIKeyRotator initialized with {len(keys)} keys")
 
     def get_next_key(self) -> str:
         """
@@ -35,7 +32,7 @@ class APIKeyRotator:
         """
         key = self.keys[self.index]
         self.index = (self.index + 1) % len(self.keys)
-        logger.info("API key rotated to index %d", self.index)
+        logger.info(f"API key rotated to index {self.index}")
         return key
 
 # Load API keys from .env file
@@ -84,7 +81,7 @@ def extract_text_from_image(image) -> MedicationResponse:
             response_modalities=["TEXT"],
         ),
     )
-    logger.info("Text extraction response received")
+    logger.info(f"Text extraction response received: {response.text}")
 
     # Prevent NoneType errors
     if not response or not hasattr(response, "text"):
@@ -100,18 +97,17 @@ def extract_text_from_image(image) -> MedicationResponse:
             'response_schema': MedicationResponse,
         },
     )
-    logger.info("Structured text response received")
 
     # Try to parse the structured response
     try:
         if hasattr(response2, "parsed"):
-            logger.info("Parsed structured response successfully")
+            logger.info(f"Parsed structured response successfully: {response2.parsed}")
             return response2.parsed
         else:
             logger.warning("Failed to parse structured response")
             return MedicationResponse(medications=[])
     except Exception as e:
-        logger.error("Error parsing structured response: %s", e)
+        logger.error(f"Error parsing structured response: {e}")
         return MedicationResponse(medications=[])
 
 def get_medicine_names(data: MedicationResponse) -> list[str]:
@@ -138,15 +134,16 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     Returns:
         SpellCheckResponse: A structured response containing spell check information
     """
-    logger.info("Starting spell check for medicines: %s", names)
+    logger.info(f"Starting spell check for medicines: {names}")
     google_search_tool = Tool(
         google_search = GoogleSearch()
     )
-
-    logger.info("Initiating initial spell check request")
-    spell_check_response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[names],
+    for name in names:
+        logger.info(f"Spell checking medicine: {name}")
+        
+        spell_check_response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[name],
         config=GenerateContentConfig(
             system_instruction=spell_system_prompt,
             tools=[google_search_tool],
@@ -156,10 +153,11 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
 
     # Get the initial response text
     if not spell_check_response or not hasattr(spell_check_response, "text"):
-        logger.error("Initial spell check failed - no response text received")
+        logger.error("Spell check failed - no response text received")
         raise GeminiError("spell check failed")
+    logger.info(f"Spell check response: {spell_check_response.text}")
 
-    logger.info("Initial spell check completed, requesting brand name information")
+    logger.info("Spell check completed, requesting brand name information")
     brand_name_response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=[spell_list_brand_name_prompt, spell_check_response.text],
@@ -171,6 +169,7 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
     if not brand_name_response or not hasattr(brand_name_response, "text"):
         logger.error("Brand name retrieval failed - no response text received")
         raise GeminiError("brand name retrieval failed")
+    logger.info(f"Brand name response: {brand_name_response.text}")
 
     logger.info("Brand name information received, generating structured response")
     # Structure the response
@@ -182,10 +181,11 @@ def spell_check_medicine_names(names: list[str], client) -> SpellCheckResponse:
             'response_schema': SpellCheckResponse,
         },
     )
+    logger.info(f"Structured response: {structured_response.parsed}")
 
     # Try to parse the structured response
     if hasattr(structured_response, "parsed"):
-        logger.info("Successfully generated structured spell check response")
+        logger.info(f"Successfully generated structured spell check response: {structured_response.parsed}")
         return structured_response.parsed
     else:
         logger.error("Failed to generate structured output")
@@ -207,6 +207,7 @@ def fix_spellings(medication_response: MedicationResponse, spell_check_response:
             for medicine in medication_response.medications:
                 if medicine.medication_name == spell_check.input_name:
                     medicine.medication_name = spell_check.corrected_name
+    logger.info(f"Medication response after spell check: {medication_response}")
     return medication_response
 
 def process_prescription_with_spell_check(image):
