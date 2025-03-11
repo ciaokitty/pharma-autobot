@@ -5,12 +5,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pathlib import Path
-import json
 from loguru import logger
 import uuid
 from .ocr import *
-from .schema import MedicationResponse, Medication, Instructions, SpellCheckResponse
-import pandas as pd
 from .dummydata import generate_dummy_data
 from .whatsapp_order import send_order_via_whatsapp, format_whatsapp_message
 
